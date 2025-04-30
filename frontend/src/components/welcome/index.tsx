@@ -3,7 +3,7 @@ import { Button, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const useStyles = createStyles(({ css }) => ({
   welcomeContainer: css`
@@ -52,9 +52,11 @@ const useStyles = createStyles(({ css }) => ({
     height: 40px;
   `
 }));
-
-const Welcome: React.FC = () => {
-  const { styles } = useStyles();
+interface WelcomeProps {
+    onStartClick: () => void;
+}
+const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
+    const { styles } = useStyles();
 
   return (
     <div className={styles.welcomeContainer}>
@@ -67,7 +69,7 @@ const Welcome: React.FC = () => {
       
       <Text className={styles.connectingText}>Connecting to the Servers, please wait...</Text>
       
-      <Button type="primary" className={styles.startButton}>
+      <Button type="primary" className={styles.startButton} onClick={onStartClick}>
         Start
       </Button>
     </div>

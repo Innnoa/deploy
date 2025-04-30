@@ -20,6 +20,7 @@ func main() {
 		Title:  "recovery-unit-deploy",
 		Width:  1024,
 		Height: 768,
+		DisableResize: true,//禁用调整窗口尺寸
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

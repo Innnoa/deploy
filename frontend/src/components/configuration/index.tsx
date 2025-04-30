@@ -1,70 +1,273 @@
-import React from 'react';
-import { Button, Typography } from 'antd';
+import React, { useState } from 'react';
+import { Select, Input, Button, Checkbox, Divider, Table, Modal } from 'antd';
+import { SearchOutlined ,ExclamationCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
-import computerLogo from '../../assets/images/computer-logo.png';
-
-const { Title, Text } = Typography;
+import type { ColumnsType } from 'antd/es/table';
 
 const useStyles = createStyles(({ css }) => ({
-  welcomeContainer: css`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  configContainer: css`
+    width: 78%;
+    padding: 22px;
+    background-color: #F4F5F7;
     height: 100vh;
-    width: 70%;
-    padding: 20px;
+    position: relative;
   `,
-  monitorImage: css`
-    width: 300px;
-    height: 250px;
-    margin-bottom: 30px;
+  section: css`
+    background: white;
+    padding: 20px 20px 15px 20px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  `,
+  printerSection: css`
+  background: white;
+  padding: 20px;
+  border-radius: 4px;
+//   margin-bottom: 4px; 
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  // height: calc(100vh - 330px); /* 动态计算最大高度 */
+  // overflow-y: auto;
+`,
+  sectionTitle: css`
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #222222;
+    text-align: left;
+  `,
+  formItem: css`
+    margin-bottom: 16px;
     display: flex;
-    justify-content: center;
     align-items: center;
   `,
-  computerLogo: css`
-    max-width: 100%;
-    max-height: 100%;
+  label: css`
+    width: 120px;
+    margin-right: 16px;
+    color: #222222;
+    text-align: left;
   `,
-  title: css`
-    text-align: center;
-    margin-bottom: 5px !important;
+  divider: css`
+    margin: 16px 0;
+    border-top: 1px dashed #E8E8E8;
   `,
-  subtitle: css`
-    text-align: center;
-    margin-bottom: 20px !important;
+  searchInput: css`
+    margin-bottom: 16px;
+    background-color: #f5f5f7;
+    border-radius: 7px;
+    height: 35px;
   `,
-  connectingText: css`
-    color: #8c8c8c;
-    margin-bottom: 30px;
+  customTable: css`
+    // background-color: #f5f5f7;
+    
+    .ant-table-thead > tr > th {
+      background-color: #f5f5f7 !important;
+    }
   `,
-  startButton: css`
-    background-color: #0052cc;
-    width: 150px;
-    height: 40px;
+  footer: css`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 15px;
+    position: absolute;
+    bottom: 24px;
+    left: 22px;
+    right: 22px;
+    background-color: #FFFFFF;
+    border-radius: 4px;
+    height: 60px; /* 添加固定高度以便计算间距 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  `,
+  footerText: css`
+    color: #777;
+    // margin-left: 22px;
+    font-size: 15px;
+    margin-left: auto;
+    margin-right: 16px;
+    text-align: right;
+  `,
+  footerLink: css`
+    color: #013FBF;
+    // cursor: pointer;
+    font-size: 15px;
+  `,
+  buttonGroup: css`
+    display: flex;
+    gap: 12px;
   `
 }));
 
-const Welcome: React.FC = () => {
+interface PrinterData {
+  key: string;
+  polNo: string;
+  ip: string;
+}
+interface ConfigurationProps {
+    onBack: () => void; // 添加返回按钮回调函数
+    onSwitchToDeploy: () => void; // 新增
+  }
+
+const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}) => {
   const { styles } = useStyles();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [printerModel, setPrinterModel] = useState<string | undefined>();
+  const [printerDriver, setPrinterDriver] = useState<string | undefined>();
+
+  const printerData: PrinterData[] = [
+    { key: '1', polNo: 'P123141', ip: '10.50.234.180' },
+    { key: '2', polNo: 'P123141', ip: '10.50.234.180' },
+    { key: '3', polNo: 'P123141', ip: '10.50.234.180' },
+    { key: '4', polNo: 'P123141', ip: '10.50.234.180' },
+    { key: '5', polNo: 'P123141', ip: '10.50.234.180' },
+    { key: '6', polNo: 'P123141', ip: '10.50.234.180' },
+    { key: '7', polNo: 'P123141', ip: '10.50.234.180' },
+    // { key: '8', polNo: 'P123141', ip: '10.50.234.180' },
+    // { key: '9', polNo: 'P123141', ip: '10.50.234.180' },
+    // { key: '10', polNo: 'P123141', ip: '10.50.234.180' },
+
+
+    
+
+  ];
+  const options=[
+    { value: 'jack', label: 'Jack' },
+    { value: 'lucy', label: 'Lucy' },
+    { value: 'Yiminghe', label: 'yiminghe' },
+  ];
+
+  const columns: ColumnsType<PrinterData> = [
+    {
+      title: 'Pol No',
+      dataIndex: 'polNo',
+      key: 'polNo',
+    },
+    {
+      title: 'IP',
+      dataIndex: 'ip',
+      key: 'ip',
+    },
+  ];
+
+  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+    setSelectedRowKeys(newSelectedRowKeys);
+  };
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: onSelectChange,
+  };
+  // 动态计算是否需要滚动
+  const getTableScroll = () => {
+    const rowHeight = 47; // 每行高度（根据实际情况调整）
+    const headerHeight = 47; // 表头高度（根据实际情况调整）
+    const contentHeight = printerData.length * rowHeight + headerHeight ;
+    console.log('contentHeight =',contentHeight);
+    
+    const maxHeight = window.innerHeight - 470;
+    console.log('maxHeight =',maxHeight);
+    
+    // 只有当内容高度超过最大高度时才启用滚动
+    return contentHeight > maxHeight ? { y: 'calc(100vh - 510px)' } : {};
+  };
+  const handleNext = () => {
+    console.log('打印机型号:', printerModel);
+    console.log('打印机驱动:', printerDriver);
+    console.log('选中的打印机:', selectedRowKeys);
+    if (!printerModel && !printerDriver && selectedRowKeys.length === 0) {
+      Modal.confirm({
+        title: 'Information',
+        icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+        content: 'No printer selected, are you sure to start deploy?',
+        okText: 'Confirm',
+        cancelText: 'Cancel',
+        centered: true,
+        onOk: () => {
+          // 用户确认后的操作
+          onSwitchToDeploy(); // 切换到Deploy组件
+          console.log('用户确认继续');
+          // 这里可以添加继续的逻辑
+        }
+      });
+    } else {
+      // 正常继续的逻辑
+      onSwitchToDeploy(); // 切换到Deploy组件
+      console.log('继续下一步');
+    }
+  };
+  //退出程序
+  const handleCancel = () => {
+    Modal.confirm({
+      title: 'Confirm Exit',
+      icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+      content: 'Are you sure you want to exit the application?',
+      okText: 'Exit',
+      cancelText: 'Cancel',
+      centered: true,
+      onOk: () => {
+        (window as any).runtime?.Quit();
+      }
+    });
+  };
 
   return (
-    <div className={styles.welcomeContainer}>
-      <div className={styles.monitorImage}>
-        <img src={computerLogo} alt="Computer" className={styles.computerLogo} />
+    <div className={styles.configContainer}>
+      {/* 本地打印机配置 */}
+      <div className={styles.section}>
+        <div className={styles.sectionTitle}>Local Printer Configuration</div>
+        <div className={styles.formItem}>
+          <span className={styles.label}>Printer Models:</span>
+          <Select style={{ width: 350, textAlign: 'left' }} placeholder="select" 
+            options={options} dropdownStyle={{ textAlign: 'left' }}
+            onChange={(value) => setPrinterModel(value)}
+            />
+        </div>
+        <Divider dashed className={styles.divider} />
+        <div className={styles.formItem}>
+          <span className={styles.label}>Printer Driver:</span>
+          <Select style={{ width: 350, textAlign: 'left'  }} placeholder="select" 
+            options={options} dropdownStyle={{ textAlign: 'left' }}
+            onChange={(value) => setPrinterDriver(value)}
+            />
+        </div>
       </div>
-      
-      <Title level={2} className={styles.title}>Deploy Tool for</Title>
-      <Title level={2} className={styles.subtitle}>Windows</Title>
-      
-      <Text className={styles.connectingText}>Connecting to the Servers, please wait...</Text>
-      
-      <Button type="primary" className={styles.startButton}>
-        Start
-      </Button>
+
+      {/* Print Q Configuration */}
+      <div className={styles.printerSection}>
+        <div className={styles.sectionTitle}>Print Q Configuration</div>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="Search for your Printer"
+          className={styles.searchInput}
+          variant="borderless"
+          allowClear
+        />
+
+        <Table 
+          className={styles.customTable}
+          rowSelection={rowSelection}
+          columns={columns}
+          dataSource={printerData}
+          pagination={false}
+          size="middle"
+          bordered={false}
+            // scroll={{ y: 'calc(100vh - 510px)' }} /* 设置表格内部滚动 */
+          scroll={getTableScroll() || undefined}
+        />
+      </div>
+
+      {/* 底部按钮 */}
+      <div className={styles.footer}>
+        <div className={styles.footerText}>
+          Additional Printer Driver Installation.
+          <span className={styles.footerLink}>Click NEXT to Next step</span>
+        </div>
+        <div className={styles.buttonGroup}>
+          <Button onClick={onBack}>Back</Button>
+          <Button danger onClick={handleCancel}>Cancel</Button>
+          <Button type="primary" onClick={handleNext}>NEXT</Button>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Welcome;
+export default Configuration;

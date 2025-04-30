@@ -44,7 +44,7 @@ const useStyles = createStyles(({ css }) => ({
   text-align: left;
   display: block;
   font-size: calc(24 * 100vh / 1024);
-  margin-top: 40px;
+  margin-top: calc(40 * 100vh / 1024);
   margin-bottom: 10px;
   `,
 
@@ -66,7 +66,7 @@ const useStyles = createStyles(({ css }) => ({
     align-items: center;
     justify-content: center;
     margin-right: 15px;
-    margin-left: 15px;
+    margin-left: 10px;
     font-size: 20px;
   `,
   infoContent: css`
@@ -75,15 +75,16 @@ const useStyles = createStyles(({ css }) => ({
   `,
   infoText: css`
     color: white;
-    margin-bottom: 5px;
     text-align: left;
     font-size: calc(20 * 100vh / 1024);
     font-weight: 900;
+    line-height: calc(24 * 100vh / 1024);
   `,
   infoTextContent: css`
     color: white;
     text-align: left;
     font-size: calc(20 * 100vh / 1024);
+    line-height: calc(24 * 100vh / 1024);
   `
 }));
 
