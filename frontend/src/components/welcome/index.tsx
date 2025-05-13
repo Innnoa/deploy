@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
@@ -57,6 +57,26 @@ interface WelcomeProps {
 }
 const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const { styles } = useStyles();
+    const [packages, setPackages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    // 调用后端的 GetAllPackages 方法
+    const fetchPackages = async () => {
+      try {
+        // 使用 window.go.main.App 访问后端导出的方法
+        const allPackages = await window.go.main.App.GetAllPackages();
+        setPackages(allPackages);
+        console.log('获取所有包信息成功:', allPackages);
+      } catch (error) {
+        console.error('获取包信息失败:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
 
   return (
     <div className={styles.welcomeContainer}>
@@ -67,8 +87,10 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       <span className={styles.title} >Deploy Tool for</span>
       <span className={styles.subtitle} >Windows</span>
       
-      <Text className={styles.connectingText}>Connecting to the Servers, please wait...</Text>
-      
+      {/* <Text className={styles.connectingText}>Connecting to the Servers, please wait...</Text> */}
+      <Text className={styles.connectingText}>
+      {isLoading ? "正在连接服务器，请稍候..." : `已连接，找到 ${packages.length} 个包`}
+    </Text>
       <Button type="primary" className={styles.startButton} onClick={onStartClick}>
         Start
       </Button>

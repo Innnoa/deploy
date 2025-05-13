@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState }  from 'react';
 import { Space } from 'antd';
 import { createStyles } from 'antd-style';
 import logo from '../../assets/images/info-logo.png';
@@ -91,17 +91,47 @@ const useStyles = createStyles(({ css }) => ({
 interface InfoProps {
   computerName?: string;
   seed?: string;
-  oaServer?: string;
+  oa?: {
+    name: string;
+    ip: string;
+  };
   ipAddress?: string;
 }
 
+
 const Info: React.FC<InfoProps> = ({ 
-  computerName = 'C81363', 
-  seed = 'CW11V24B', 
-  oaServer = 'HPFS3OABAH2', 
-  ipAddress = '10.50.241.78' 
+  computerName = '-', 
+  seed = '-', 
+  oa = { name: '-', ip: '-' },  
+  ipAddress = '-.-.-.-' 
 }) => {
   const { styles } = useStyles();
+  const [computerInfo, setComputerInfo] = useState({
+    name: computerName,
+    seed: seed,
+    oa: oa.name,
+    ip: ipAddress
+  });
+
+  useEffect(() => {
+    // 调用后端的 GetComputerInfo 方法
+    const fetchComputerInfo = async () => {
+      try {
+        // 使用 window.go.main 访问后端导出的方法
+        const info = await window.go.main.App.GetComputerInfo();
+        setComputerInfo({
+          name: info.name,
+          seed: info.seed,
+          oa: info.oa.name,
+          ip: info.ip
+        });
+      } catch (error) {
+        // console.error('获取计算机信息失败:', error);
+      }
+    };
+
+    fetchComputerInfo();
+  }, []);
 
   return (
     <div className={styles.infoContainer}>
@@ -116,7 +146,7 @@ const Info: React.FC<InfoProps> = ({
           <img src={computerImg} className={styles.infoIcon} alt="logo" />
           <div className={styles.infoContent}>
             <div className={styles.infoText}>Computer Name</div>
-            <div className={styles.infoTextContent}> {computerName}</div>
+            <div className={styles.infoTextContent}> {computerInfo.name}</div>
           </div>
         </div>
         
@@ -124,7 +154,7 @@ const Info: React.FC<InfoProps> = ({
           <img src={seedName} className={styles.infoIcon} alt="logo" />
           <div className={styles.infoContent}>
             <div className={styles.infoText}>Seed</div>
-            <div className={styles.infoTextContent}>{seed}</div>
+            <div className={styles.infoTextContent}>{computerInfo.seed}</div>
           </div>
         </div>
         
@@ -132,7 +162,7 @@ const Info: React.FC<InfoProps> = ({
          <img src={serverName} className={styles.infoIcon} alt="logo" />
           <div className={styles.infoContent}>
             <div className={styles.infoText}>OA Server</div>
-            <div className={styles.infoTextContent}>{oaServer}</div>
+            <div className={styles.infoTextContent}>{computerInfo.oa}</div>
           </div>
         </div>
         
@@ -140,7 +170,7 @@ const Info: React.FC<InfoProps> = ({
         <img src={ipName} className={styles.infoIcon} alt="logo" />
           <div className={styles.infoContent}>
             <div className={styles.infoText}>IP Address</div>
-            <div className={styles.infoTextContent}>{ipAddress}</div>
+            <div className={styles.infoTextContent}>{computerInfo.ip}</div>
           </div>
         </div>
       </Space>
