@@ -1,10 +1,10 @@
 package service
 
 type ComputerInfo struct {
-	Name     string `json:"name"`
-	Seed     string `json:"seed"`
-	IP       string `json:"ip"`
-	OAServer string `json:"oaserver"`
+	Name string   `json:"name"`
+	Seed string   `json:"seed"`
+	IP   string   `json:"ip"`
+	OA   OAServer `json:"oa"`
 }
 
 func getComputerName() string {
@@ -17,11 +17,6 @@ func getSeedLabel() string {
 	return seed
 }
 
-func getOAServer() string {
-	server := "HPFS3OABAH3"
-	return server
-}
-
 func getIP() string {
 	ip := "192.168.14.110"
 	return ip
@@ -32,12 +27,12 @@ func (c *ComputerInfo) GetComputerInfo() ComputerInfo {
 
 	name := getComputerName()
 	seed := getSeedLabel()
-	server := getOAServer()
 	ip := getIP()
+	server := getOAServer(ip)
 
 	info.Name = name
 	info.Seed = seed
-	info.OAServer = server
+	info.OA = server
 	info.IP = ip
 
 	return info

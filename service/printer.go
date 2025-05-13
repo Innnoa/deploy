@@ -1,11 +1,14 @@
 package service
 
+import "strings"
+
 type Printer struct {
+	ID    string `json:"id"`
 	PolNo string `json:"pol"`
 	IP    string `json:"ip"`
 }
 
-func (c *Printer) GetNextworkPinterList(pol string, ip string) []Printer {
+func (p *Printer) GetNextworkPinterList(keyword string) []Printer {
 
 	var printer0 Printer
 	printer0.PolNo = "P87520"
@@ -15,17 +18,31 @@ func (c *Printer) GetNextworkPinterList(pol string, ip string) []Printer {
 	return printers
 }
 
-func (c *Printer) GetPrinterModels() []string {
+func (p *Printer) GetPrinterModels() []string {
 	models := []string{"HP", "Epson", "Brother"}
 	return models
 }
 
-func (c *Printer) GetPrinterDrivers(model string) []string {
-	drivers := []string{"HP - LaserJet 4 Plus", "HP - LaserJet 5"}
+func (p *Printer) GetPrinterDrivers(model string) []PackageInfo {
+	var drivers []PackageInfo
+
+	for _, value := range localPrinterDriverList {
+		if strings.HasPrefix(value.AppName, model) {
+			drivers = append(drivers, value)
+		}
+	}
 	return drivers
 }
 
-func (c *Printer) GetSelectedPrinters(driver string, printers []Printer) bool {
-	//get driver installpath and file
+func (p *Printer) SetSelectedPrinters(driverId string, printers []Printer) bool {
+	for _, value := range allPackages {
+		if value.ID == driverId {
+			selectedLocalDriver = value
+			break
+		}
+	}
+
+	selectedNetworkPrinters = printers
+
 	return true
 }
