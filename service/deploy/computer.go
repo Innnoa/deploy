@@ -1,11 +1,9 @@
-package service
+package deploy
 
-type ComputerInfo struct {
-	Name string   `json:"name"`
-	Seed string   `json:"seed"`
-	IP   string   `json:"ip"`
-	OA   OAServer `json:"oa"`
-}
+import (
+	"recovery-unit-deploy/service/api"
+	"recovery-unit-deploy/service/common"
+)
 
 func getComputerName() string {
 	name := "C81369"
@@ -22,17 +20,17 @@ func getIP() string {
 	return ip
 }
 
-func (c *ComputerInfo) GetComputerInfo() ComputerInfo {
-	var info ComputerInfo
+func (c *Deploy) GetComputerInfo() common.ComputerInfo {
+	var info common.ComputerInfo
 
 	name := getComputerName()
 	seed := getSeedLabel()
 	ip := getIP()
-	server := getOAServer(ip)
+	oa := api.GetOAServer(ip)
 
 	info.Name = name
 	info.Seed = seed
-	info.OA = server
+	info.OA = oa
 	info.IP = ip
 
 	return info
