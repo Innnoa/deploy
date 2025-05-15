@@ -191,7 +191,7 @@ func GetOAServer(ip string) string {
 	// }
 
 	// common.CurrentOA = result.Name
-	common.CurrentOA = "HPFS3OABAH3"
+	common.CurrentOA = "192.168.49.48"
 	return common.CurrentOA
 }
 
@@ -323,6 +323,7 @@ func GetAllPackages(pol string) []common.PackageInfo {
 	package0.AppType = "ForceApp"
 	package0.ID = "0B9111FE-F2F3-05AF-C7CE-35F536E15FDD"
 	package0.Status = "Waiting"
+	package0.Path = "Package"
 
 	var package1 common.PackageInfo
 	package1.AppName = "HP - LaserJet 4 Plus"
