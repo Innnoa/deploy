@@ -3,6 +3,8 @@ import { Select, Input, Button, Checkbox, Divider, Table, Modal } from 'antd';
 import { SearchOutlined ,ExclamationCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
 import type { ColumnsType } from 'antd/es/table';
+import { useAppContext } from '../../context/AppContext';
+import { GetPrinterDrivers } from "../../../wailsjs/go/deploy/Deploy"; 
 
 const useStyles = createStyles(({ css }) => ({
   configContainer: css`
@@ -111,6 +113,10 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [printerModel, setPrinterModel] = useState<string | undefined>();
   const [printerDriver, setPrinterDriver] = useState<string | undefined>();
+  const [driverOptions, setDriverOptions] = useState<{value: string, label: string}[]>([]);
+
+  // 使用上下文获取数据
+  const { printerModels, server, port } = useAppContext();
 
   const printerData: PrinterData[] = [
     { key: '1', polNo: 'P123141', ip: '10.50.234.180' },
@@ -128,11 +134,12 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     
 
   ];
-  const options=[
-    { value: 'jack', label: 'Jack' },
-    { value: 'lucy', label: 'Lucy' },
-    { value: 'Yiminghe', label: 'yiminghe' },
-  ];
+
+   // 将 printerModels 转换为 Select 组件需要的 options 格式
+   const options = (printerModels || []).map(model => ({
+    value: model,
+    label: model
+  }));
 
   const columns: ColumnsType<PrinterData> = [
     {
@@ -207,6 +214,17 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
       }
     });
   };
+    // 选择打印机型号时调用驱动接口
+    const handlePrinterModelChange = async (value: string) => {
+      setPrinterModel(value);
+      try {
+        const drivers = await GetPrinterDrivers(value);
+        // 假设返回的是字符串数组
+        // setDriverOptions((drivers || []).map((d: string) => ({ value: d, label: d })));
+      } catch (e) {
+        setDriverOptions([]);
+      }
+    };
 
   return (
     <div className={styles.configContainer}>
@@ -217,14 +235,14 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
           <span className={styles.label}>Printer Models:</span>
           <Select style={{ width: 350, textAlign: 'left' }} placeholder="select" 
             options={options} dropdownStyle={{ textAlign: 'left' }}
-            onChange={(value) => setPrinterModel(value)}
+            onChange={handlePrinterModelChange}
             />
         </div>
         <Divider dashed className={styles.divider} />
         <div className={styles.formItem}>
           <span className={styles.label}>Printer Driver:</span>
           <Select style={{ width: 350, textAlign: 'left'  }} placeholder="select" 
-            options={options} dropdownStyle={{ textAlign: 'left' }}
+            options={driverOptions} dropdownStyle={{ textAlign: 'left' }}
             onChange={(value) => setPrinterDriver(value)}
             />
         </div>

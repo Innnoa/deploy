@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Typography ,Input} from 'antd';
+import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {GetComputerInfo} from "../../../wailsjs/go/deploy/Deploy";
+import {InitClient,GetPrinterModels} from "../../../wailsjs/go/deploy/Deploy";
+import { ExclamationCircleFilled} from '@ant-design/icons';
+import { useAppContext } from '../../context/AppContext';
 
 const { Text } = Typography;
 
@@ -85,6 +87,10 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const [server, setServer] = useState<string>('');
     const [port, setPort] = useState<string>('');
     const [connected, setConnected] = useState<boolean>(false);
+    const [printerModels, setPrinterModels] = useState<string[]>([]);
+
+    // 使用上下文
+    const appContext = useAppContext();
 
   // useEffect(() => {
   //   // 调用后端的 GetAllPackages 方法
@@ -106,6 +112,18 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
 
   // 添加连接服务器的函数
   const connectToServer = async () => {
+    // 检查 server 和 port 是否已输入
+    if (!server || !port) {
+      Modal.confirm({
+        title: 'Information',
+        icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+        content: 'Please input the server and port.',
+        okText: 'Confirm',
+        centered: true,
+        
+      });
+      return;
+    }
     setIsLoading(true);
     // 设置定时器，3秒后将 isLoading 设置为 true
     setTimeout(() => {
@@ -113,16 +131,30 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       setConnected(true);
     }, 3000);
     // try {
-    //   // 使用 window.go.main.App 访问后端导出的方法
-    //   const allPackages = await window.go.main.App.GetAllPackages();
-    //   setPackages(allPackages);
-    //   setConnected(true);
-    //   console.log('获取所有包信息成功:', allPackages);
+    //   // 初始化客户端连接
+    //   const info = await InitClient(server, port);
+
+    //   // ... 其他操作
     // } catch (error) {
-    //   console.error('获取包信息失败:', error);
+    //   console.error('连接服务器失败:', error);
     // } finally {
     //   setIsLoading(false);
     // }
+    try {
+      const models = await GetPrinterModels();
+      console.log('获取打印机型号成功:', models);
+      setPrinterModels(models);
+
+      // 同时保存到上下文中
+      appContext.setPrinterModels(models);
+      appContext.setServer(server);
+      appContext.setPort(port);
+
+    } catch (error) {
+      console.error('连接服务器失败:', error);
+    } finally {
+      // setIsLoading(false);
+    }
   };
 
   // 处理按钮点击
