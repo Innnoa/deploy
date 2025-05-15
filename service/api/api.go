@@ -153,42 +153,42 @@ func (c *HTTPClient) SendRequest(params RequestParams) ([]byte, int, error) {
 func GetOAServer(ip string) string {
 	log.Printf("get OAServer from ip: %s", ip)
 
-	var request OAServerRequest
-	request.IP = ip
+	// var request OAServerRequest
+	// request.IP = ip
 
-	var public PublicRequest
-	public.AccessKeyId = ACCESS_KEY
-	public.Timestamp = getCurrentTimestamp()
+	// var public PublicRequest
+	// public.AccessKeyId = ACCESS_KEY
+	// public.Timestamp = getCurrentTimestamp()
 
-	request.PublicReq = public
+	// request.PublicReq = public
 
-	m := structToMap(public, "Signature")
-	public.Signature = generateSignature(m)
+	// m := structToMap(public, "Signature")
+	// public.Signature = generateSignature(m)
 
-	//call api
-	params := RequestParams{
-		Method: "POST",
-		Path:   "/oa",
-		Body:   request,
-	}
+	// //call api
+	// params := RequestParams{
+	// 	Method: "POST",
+	// 	Path:   "/oa",
+	// 	Body:   request,
+	// }
 
-	body, status, err := Client.SendRequest(params)
+	// body, status, err := Client.SendRequest(params)
 
-	if err != nil {
-		log.Printf("请求异常: %v", err)
-		return ""
-	}
+	// if err != nil {
+	// 	log.Printf("请求异常: %v", err)
+	// 	return ""
+	// }
 
-	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(body))
-		return ""
-	}
+	// if status != http.StatusOK {
+	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
+	// 	return ""
+	// }
 
-	var result OAServerResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
-		return ""
-	}
+	// var result OAServerResponse
+	// if err := json.Unmarshal(body, &result); err != nil {
+	// 	log.Printf("JSON解析失败: %v", err)
+	// 	return ""
+	// }
 
 	// common.CurrentOA = result.Name
 	common.CurrentOA = "HPFS3OABAH3"
@@ -196,79 +196,79 @@ func GetOAServer(ip string) string {
 }
 
 func GetPrinterModels() []string {
-	var public PublicRequest
-	public.AccessKeyId = ACCESS_KEY
-	public.Timestamp = getCurrentTimestamp()
+	// var public PublicRequest
+	// public.AccessKeyId = ACCESS_KEY
+	// public.Timestamp = getCurrentTimestamp()
 
-	m := structToMap(public, "Signature")
-	public.Signature = generateSignature(m)
+	// m := structToMap(public, "Signature")
+	// public.Signature = generateSignature(m)
 
-	//call api
-	params := RequestParams{
-		Method: "GET",
-		Path:   "/printer/models",
-		Body:   public,
-	}
+	// //call api
+	// params := RequestParams{
+	// 	Method: "GET",
+	// 	Path:   "/printer/models",
+	// 	Body:   public,
+	// }
 
-	body, status, err := Client.SendRequest(params)
+	// body, status, err := Client.SendRequest(params)
 
-	if err != nil {
-		log.Printf("请求异常: %v", err)
-		return nil
-	}
+	// if err != nil {
+	// 	log.Printf("请求异常: %v", err)
+	// 	return nil
+	// }
 
-	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(body))
-		return nil
-	}
+	// if status != http.StatusOK {
+	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
+	// 	return nil
+	// }
 
-	var result PrinterModelResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
-		return nil
-	}
+	// var result PrinterModelResponse
+	// if err := json.Unmarshal(body, &result); err != nil {
+	// 	log.Printf("JSON解析失败: %v", err)
+	// 	return nil
+	// }
 
 	// return result.Models
 	return []string{"HP", "Epson", "Brother"}
 }
 
 func GetNetworkPinterList(keyword string) []common.Printer {
-	var request NetworkPrinterRequest
-	request.Keyword = keyword
+	// var request NetworkPrinterRequest
+	// request.Keyword = keyword
 
-	var public PublicRequest
-	public.AccessKeyId = ACCESS_KEY
-	public.Timestamp = getCurrentTimestamp()
+	// var public PublicRequest
+	// public.AccessKeyId = ACCESS_KEY
+	// public.Timestamp = getCurrentTimestamp()
 
-	request.PublicReq = public
+	// request.PublicReq = public
 
-	m := structToMap(public, "Signature")
-	public.Signature = generateSignature(m)
+	// m := structToMap(public, "Signature")
+	// public.Signature = generateSignature(m)
 
-	//call api
-	params := RequestParams{
-		Method: "GET",
-		Path:   "/printer/network",
-		Body:   request,
-	}
+	// //call api
+	// params := RequestParams{
+	// 	Method: "GET",
+	// 	Path:   "/printer/network",
+	// 	Body:   request,
+	// }
 
-	body, status, err := Client.SendRequest(params)
+	// body, status, err := Client.SendRequest(params)
 
-	if err != nil {
-		log.Printf("请求异常: %v", err)
-		return nil
-	}
+	// if err != nil {
+	// 	log.Printf("请求异常: %v", err)
+	// 	return nil
+	// }
 
-	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(body))
-		return nil
-	}
+	// if status != http.StatusOK {
+	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
+	// 	return nil
+	// }
 
-	var result NetworkPrinterResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
-		return nil
-	}
+	// var result NetworkPrinterResponse
+	// if err := json.Unmarshal(body, &result); err != nil {
+	// 	log.Printf("JSON解析失败: %v", err)
+	// 	return nil
+	// }
 
 	// return result.Printers
 	var printer0 common.Printer
@@ -280,42 +280,42 @@ func GetNetworkPinterList(keyword string) []common.Printer {
 }
 
 func GetAllPackages(pol string) []common.PackageInfo {
-	var request PackageRequest
-	request.Pol = pol
+	// var request PackageRequest
+	// request.Pol = pol
 
-	var public PublicRequest
-	public.AccessKeyId = ACCESS_KEY
-	public.Timestamp = getCurrentTimestamp()
+	// var public PublicRequest
+	// public.AccessKeyId = ACCESS_KEY
+	// public.Timestamp = getCurrentTimestamp()
 
-	request.PublicReq = public
+	// request.PublicReq = public
 
-	m := structToMap(public, "Signature")
-	public.Signature = generateSignature(m)
+	// m := structToMap(public, "Signature")
+	// public.Signature = generateSignature(m)
 
-	//call api
-	params := RequestParams{
-		Method: "POST",
-		Path:   "/packages",
-		Body:   request,
-	}
+	// //call api
+	// params := RequestParams{
+	// 	Method: "POST",
+	// 	Path:   "/packages",
+	// 	Body:   request,
+	// }
 
-	body, status, err := Client.SendRequest(params)
+	// body, status, err := Client.SendRequest(params)
 
-	if err != nil {
-		log.Printf("请求异常: %v", err)
-		return nil
-	}
+	// if err != nil {
+	// 	log.Printf("请求异常: %v", err)
+	// 	return nil
+	// }
 
-	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(body))
-		return nil
-	}
+	// if status != http.StatusOK {
+	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
+	// 	return nil
+	// }
 
-	var result PackageResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
-		return nil
-	}
+	// var result PackageResponse
+	// if err := json.Unmarshal(body, &result); err != nil {
+	// 	log.Printf("JSON解析失败: %v", err)
+	// 	return nil
+	// }
 
 	// return result.Pakcages
 	var package0 common.PackageInfo
@@ -335,44 +335,44 @@ func GetAllPackages(pol string) []common.PackageInfo {
 }
 
 func GetPrinterDrivers(printers []common.Printer) []common.PackageInfo {
-	var request PrinterDriverRequest
-	for _, value := range printers {
-		request.Printers = append(request.Printers, value.ID)
-	}
+	// var request PrinterDriverRequest
+	// for _, value := range printers {
+	// 	request.Printers = append(request.Printers, value.ID)
+	// }
 
-	var public PublicRequest
-	public.AccessKeyId = ACCESS_KEY
-	public.Timestamp = getCurrentTimestamp()
+	// var public PublicRequest
+	// public.AccessKeyId = ACCESS_KEY
+	// public.Timestamp = getCurrentTimestamp()
 
-	request.PublicReq = public
+	// request.PublicReq = public
 
-	m := structToMap(public, "Signature")
-	public.Signature = generateSignature(m)
+	// m := structToMap(public, "Signature")
+	// public.Signature = generateSignature(m)
 
-	//call api
-	params := RequestParams{
-		Method: "POST",
-		Path:   "/printer/driver",
-		Body:   request,
-	}
+	// //call api
+	// params := RequestParams{
+	// 	Method: "POST",
+	// 	Path:   "/printer/driver",
+	// 	Body:   request,
+	// }
 
-	body, status, err := Client.SendRequest(params)
+	// body, status, err := Client.SendRequest(params)
 
-	if err != nil {
-		log.Printf("请求异常: %v", err)
-		return nil
-	}
+	// if err != nil {
+	// 	log.Printf("请求异常: %v", err)
+	// 	return nil
+	// }
 
-	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(body))
-		return nil
-	}
+	// if status != http.StatusOK {
+	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
+	// 	return nil
+	// }
 
-	var result PackageResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
-		return nil
-	}
+	// var result PackageResponse
+	// if err := json.Unmarshal(body, &result); err != nil {
+	// 	log.Printf("JSON解析失败: %v", err)
+	// 	return nil
+	// }
 
 	// return result.Packages
 	var package0 common.PackageInfo
