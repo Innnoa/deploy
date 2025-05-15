@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"recovery-unit-deploy/service"
 )
 
 // App struct
@@ -27,13 +26,13 @@ func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
 // GetComputerInfo 返回计算机信息，导出给前端调用
-func (a *App) GetComputerInfo() service.ComputerInfo {
-	var computer service.ComputerInfo
-	return computer.GetComputerInfo()
-}
+// func (a *App) GetComputerInfo() service.ComputerInfo {
+// 	var computer service.ComputerInfo
+// 	return computer.GetComputerInfo()
+// }
 
-func (a *App) GetAllPackages() service.PackageInfo {
-	var packages service.PackageInfo
-    packages.GetAllPackages("") // Pass an empty string or appropriate value
-    return packages
-}
+// func (a *App) GetAllPackages() service.PackageInfo {
+// 	var packages service.PackageInfo
+//     packages.GetAllPackages("") // Pass an empty string or appropriate value
+//     return packages
+// }

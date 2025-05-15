@@ -2,10 +2,7 @@ interface ComputerInfo {
     name: string;
     seed: string;
     ip: string;
-    oa: {
-        name: string;
-        ip: string;
-      };
+    oa: string;
   }
 
   interface Package {

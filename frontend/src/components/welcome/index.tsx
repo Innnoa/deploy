@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Typography } from 'antd';
+import { Button, Typography ,Input} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
+import {GetComputerInfo} from "../../../wailsjs/go/deploy/Deploy";
 
 const { Text } = Typography;
 
@@ -46,10 +47,32 @@ const useStyles = createStyles(({ css }) => ({
     color: #8181A5;
     margin-bottom: 20px;
   `,
+  inputContainer: css`
+    display: flex;
+    margin-bottom: 20px;
+    gap: 10px;
+    margin-top : 20px;
+    `,
+  inputGroup: css`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    
+  `,
+  inputLabel: css`
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #222222;
+  `,
   startButton: css`
     background-color: #0052cc;
     width: 150px;
     height: 40px;
+    &:hover {
+    background-color: #013FBF !important;
+  }
   `
 }));
 interface WelcomeProps {
@@ -58,25 +81,60 @@ interface WelcomeProps {
 const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const { styles } = useStyles();
     const [packages, setPackages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [server, setServer] = useState<string>('');
+    const [port, setPort] = useState<string>('');
+    const [connected, setConnected] = useState<boolean>(false);
 
-  useEffect(() => {
-    // 调用后端的 GetAllPackages 方法
-    const fetchPackages = async () => {
-      try {
-        // 使用 window.go.main.App 访问后端导出的方法
-        const allPackages = await window.go.main.App.GetAllPackages();
-        setPackages(allPackages);
-        console.log('获取所有包信息成功:', allPackages);
-      } catch (error) {
-        console.error('获取包信息失败:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // useEffect(() => {
+  //   // 调用后端的 GetAllPackages 方法
+  //   const fetchPackages = async () => {
+  //     try {
+  //       // 使用 window.go.main.App 访问后端导出的方法
+  //       const allPackages = await window.go.main.App.GetAllPackages();
+  //       setPackages(allPackages);
+  //       console.log('获取所有包信息成功:', allPackages);
+  //     } catch (error) {
+  //       console.error('获取包信息失败:', error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
 
-    fetchPackages();
-  }, []);
+  //   fetchPackages();
+  // }, []);
+
+  // 添加连接服务器的函数
+  const connectToServer = async () => {
+    setIsLoading(true);
+    // 设置定时器，3秒后将 isLoading 设置为 true
+    setTimeout(() => {
+      setIsLoading(false);
+      setConnected(true);
+    }, 3000);
+    // try {
+    //   // 使用 window.go.main.App 访问后端导出的方法
+    //   const allPackages = await window.go.main.App.GetAllPackages();
+    //   setPackages(allPackages);
+    //   setConnected(true);
+    //   console.log('获取所有包信息成功:', allPackages);
+    // } catch (error) {
+    //   console.error('获取包信息失败:', error);
+    // } finally {
+    //   setIsLoading(false);
+    // }
+  };
+
+  // 处理按钮点击
+  const handleButtonClick = () => {
+    if (connected) {
+      // 如果已连接，调用 onStartClick 进入下一步
+      onStartClick();
+    } else {
+      // 否则连接服务器
+      connectToServer();
+    }
+  };
 
   return (
     <div className={styles.welcomeContainer}>
@@ -87,12 +145,38 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       <span className={styles.title} >Deploy Tool for</span>
       <span className={styles.subtitle} >Windows</span>
       
+      <div className={styles.inputContainer}>
+        <div className={styles.inputGroup}>
+          <span className={styles.inputLabel}>Server:</span>
+          <Input 
+            placeholder="Please input" 
+            value={server}
+            onChange={(e) => setServer(e.target.value)}
+            style={{ width: '230px' }}
+          />
+        </div>
+        <div className={styles.inputGroup}>
+          <span className={styles.inputLabel}>Port:</span>
+          <Input 
+            placeholder="Please input" 
+            value={port}
+            onChange={(e) => setPort(e.target.value)}
+            style={{ width: '230px' }}
+          />
+        </div>
+      </div>
       {/* <Text className={styles.connectingText}>Connecting to the Servers, please wait...</Text> */}
       <Text className={styles.connectingText}>
-      {isLoading ? "正在连接服务器，请稍候..." : `已连接，找到 ${packages.length} 个包`}
-    </Text>
-      <Button type="primary" className={styles.startButton} onClick={onStartClick}>
-        Start
+        {isLoading ? "Connecting to the server, please wait..." : (connected ? `已连接，找到 ${packages.length} 个包` : "")}
+      </Text>
+    <Button 
+        type="primary" 
+        className={styles.startButton} 
+        onClick={handleButtonClick}
+        loading={isLoading}
+        disabled={isLoading}
+      >
+        {connected ? "Start" : "Connect"}
       </Button>
     </div>
   );
