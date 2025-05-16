@@ -3,19 +3,38 @@ package deploy
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"recovery-unit-deploy/service/common"
+	"runtime"
 	"time"
 
 	"github.com/hirochachacha/go-smb2"
+	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
-var installStatus []common.InstallStatus
+type Charset string
+
+const (
+	UTF8    Charset = "UTF-8"
+	GB18030 Charset = "GB18030" // Windows 中文编码
+)
+
+func ConvertByte2String(byteData []byte, charset Charset) string {
+	switch charset {
+	case GB18030:
+		decodeBytes, _ := simplifiedchinese.GB18030.NewDecoder().Bytes(byteData)
+		return string(decodeBytes)
+	default:
+		return string(byteData)
+	}
+}
 
 func runScript(scriptPath string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -27,13 +46,15 @@ func runScript(scriptPath string) (string, error) {
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
+	output := ConvertByte2String(stdout.Bytes(), GB18030)
+	errMsg := ConvertByte2String(stderr.Bytes(), GB18030)
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("%s失败，退出码: %d\n错误输出: %s", scriptPath, exitErr.ExitCode(), stderr.String())
+			return "", fmt.Errorf("%s失败，退出码: %d\n错误输出: %s", scriptPath, exitErr.ExitCode(), errMsg)
 		}
 		return "", fmt.Errorf("启动%s失败: %v", scriptPath, err)
 	}
-	return stdout.String(), nil
+	return output, nil
 }
 
 // 创建SMB客户端连接
@@ -86,9 +107,14 @@ func copyFromSMB(share *smb2.Share, remotePath, localPath string) error {
 	defer remoteFile.Close()
 
 	// 2. 创建本地文件
-	localFile, err := os.Create(localPath)
+	err = CreateFileWithAutoDirs(localPath)
 	if err != nil {
 		return fmt.Errorf("创建本地文件失败: %v", err)
+	}
+
+	localFile, err := os.OpenFile(localPath, os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("打开文件失败: %v", err)
 	}
 	defer localFile.Close()
 
@@ -105,42 +131,76 @@ func copyFromSMB(share *smb2.Share, remotePath, localPath string) error {
 	return nil
 }
 
+func CreateFileWithAutoDirs(filePath string) error {
+	// 输入验证
+	if len(filePath) == 0 {
+		return errors.New("路径不能为空")
+	}
+
+	// 路径标准化处理
+	normalizedPath := filepath.Clean(filePath)
+	if !filepath.IsAbs(normalizedPath) {
+		return errors.New("必须使用绝对路径")
+	}
+
+	// 提取父目录
+	parentDir := filepath.Dir(normalizedPath)
+
+	// 递归创建目录
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		return fmt.Errorf("目录创建失败: %v", err)
+	}
+
+	// 检查文件存在性
+	if _, err := os.Stat(normalizedPath); os.IsNotExist(err) {
+		// 创建并打开文件
+		_, err := os.Create(normalizedPath)
+		if err != nil {
+			return fmt.Errorf("文件创建失败: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (p *Deploy) DoInstall() {
 	// 配置参数
-	server := common.CurrentOA
+	server := "192.168.49.48"
 	username := "Administrator" //get from server
 	password := "Deepit123"     //get from server
-	shareName := "Master OA Server"
+	shareName := "MasterOAServer"
 
-	for _, value := range allPackages {
-		var status common.InstallStatus
-		status.ID = value.ID
-		status.Status = "Waiting"
-
-		installStatus = append(installStatus, status)
-
-		remoteFile := value.WinFile
-		localPath := path.Join("C:\\Temp\\Tool", value.WinFile)
-
-		// 连接SMB
-		share, cleanup, err := connectSMB(server, username, password, shareName)
-		defer cleanup()
-		if err != nil {
-			fmt.Println("连接失败:", err)
+	// 连接SMB
+	share, cleanup, err := connectSMB(server, username, password, shareName)
+	defer cleanup()
+	if err != nil {
+		fmt.Println("连接失败:", err)
+		for _, value := range installedPackages {
+			value.Status = common.Failed.String()
+			value.Error = "Can't connect to OA Server."
 		}
+
+		return
+	}
+
+	for _, value := range installedPackages {
+		remoteFile := value.WinFile
+		localPath := path.Join("C:/Temp/tool", value.WinFile)
 
 		// 执行拷贝
 		if err := copyFromSMB(share, remoteFile, localPath); err != nil {
 			fmt.Println("操作失败:", err)
+			value.Status = common.Failed.String()
+			value.Error = "Copy file from OA Server failed."
+			continue
 		} else {
 			fmt.Println("文件成功拷贝至:", localPath)
 		}
-	}
 
-	for _, value := range allPackages {
-		os.Setenv("SRC", path.Join(common.CurrentOA, value.Path))
+		os.Setenv("SRC", "\\\\"+common.CurrentOA+"\\"+shareName+"\\"+value.Path)
+		os.Setenv("SEED_OS", "CW11")
 		// 执行第一个bat文件
-		batOutput, err := runScript("script.bat")
+		batOutput, err := runScript(localPath)
 		if err != nil {
 			fmt.Println("错误:", err)
 			continue
@@ -148,16 +208,48 @@ func (p *Deploy) DoInstall() {
 		fmt.Println("Bat输出:", batOutput)
 
 		// 执行第二个cmd文件
-		cmdOutput, err := runScript("script.cmd")
+		localCmd := path.Join("C:/Temp/tool", "JOB.CMD")
+		cmdOutput, err := runScript(localCmd)
 		if err != nil {
-			fmt.Println("错误:", err)
+			fmt.Println("JOB.CMD 执行错误:", err)
+		} else {
+			fmt.Println("Cmd输出:", cmdOutput)
+		}
+
+		batOutput, err = deleteByOSCommand("C:\\Temp\\tool")
+		if err != nil {
+			fmt.Println("delete文件错误:", err)
 			continue
 		}
-		fmt.Println("Cmd输出:", cmdOutput)
+		fmt.Println("delete Bat输出:", batOutput)
 	}
 
 }
 
-func (p *Deploy) GetInstallStatus() []common.InstallStatus {
-	return installStatus
+func deleteByOSCommand(dir string) (string, error) {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", "rmdir", "/s", "/q", dir)
+	} else {
+		cmd = exec.Command("rm", "-rf", dir)
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	output := ConvertByte2String(stdout.Bytes(), GB18030)
+	errMsg := ConvertByte2String(stderr.Bytes(), GB18030)
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("%s失败，退出码: %d\n错误输出: %s", dir, exitErr.ExitCode(), errMsg)
+		}
+		return "", fmt.Errorf("启动%s失败: %v", dir, err)
+	}
+
+	return output, err
+}
+
+func (p *Deploy) GetInstallStatus() []common.PackageInfo {
+	return installedPackages
 }

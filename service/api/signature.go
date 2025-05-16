@@ -13,7 +13,7 @@ func getCurrentTimestamp() string {
 }
 
 func structToMap(obj interface{}, ignore string) map[string]interface{} {
-	m := structs.Map(&obj)
+	m := structs.Map(obj)
 	delete(m, ignore)
 
 	return m

@@ -6,6 +6,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/wailsapp/wails/v2 v2.10.1
+	golang.org/x/text v0.22.0
 )
 
 require (
@@ -35,7 +36,6 @@ require (
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
 )
 
 // replace github.com/wailsapp/wails/v2 v2.10.1 => /Users/symac/go/pkg/mod

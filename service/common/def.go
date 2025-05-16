@@ -27,10 +27,20 @@ type PackageInfo struct {
 	UOSFile   string `json:"uos_file"`
 	KylinFile string `json:"kylin_file"`
 	Status    string `json:"status"`
+	Error     string `json:"error"`
 }
 
-type InstallStatus struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
-	Error  string `json:"error"`
+type Status int
+
+const (
+	Waiting Status = iota // 显式指定类型
+	Running
+	Completed
+	Failed
+)
+
+func (s Status) String() string {
+	return [...]string{
+		"Waiting", "Running", "Completed", "Failed",
+	}[s]
 }

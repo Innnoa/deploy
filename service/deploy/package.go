@@ -10,6 +10,7 @@ var localPrinterDriverList []common.PackageInfo
 var allPackages []common.PackageInfo
 var selectedLocalDriver common.PackageInfo
 var selectedNetworkPrinters []common.Printer
+var installedPackages []common.PackageInfo
 
 func (p *Deploy) GetAllPackages(pol string) {
 	//get all packages(application and driver) through pol number
@@ -23,19 +24,19 @@ func (p *Deploy) GetAllPackages(pol string) {
 }
 
 func (p *Deploy) GetInstallPackages() []common.PackageInfo {
-	var installPackages []common.PackageInfo
+	installedPackages = installedPackages[:0]
 	for _, value := range allPackages {
 		if value.AppType != "Printer" {
-			installPackages = append(installPackages, value)
+			installedPackages = append(installedPackages, value)
 		}
 	}
 
-	installPackages = append(installPackages, selectedLocalDriver)
+	installedPackages = append(installedPackages, selectedLocalDriver)
 	//get network printer drivers through api
 	log.Println("get network printer from list: ", selectedNetworkPrinters)
 
 	networkPrinterDriver := api.GetPrinterDrivers(selectedNetworkPrinters)
-	installPackages = append(installPackages, networkPrinterDriver...)
+	installedPackages = append(installedPackages, networkPrinterDriver...)
 
-	return installPackages
+	return installedPackages
 }

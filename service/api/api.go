@@ -84,8 +84,8 @@ type PrinterDriverResponse struct {
 }
 
 var Client HTTPClient
-var ACCESS_KEY string = "huDRV7GjHGT"
-var ACCESS_SECRET string = "UUJ6JHEDDR90"
+var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
+var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
 
 func (c *HTTPClient) SendRequest(params RequestParams) ([]byte, int, error) {
 	// 1. 构建完整URL
@@ -162,13 +162,13 @@ func GetOAServer(ip string) string {
 
 	// request.PublicReq = public
 
-	// m := structToMap(public, "Signature")
+	// m := structToMap(request, "Signature")
 	// public.Signature = generateSignature(m)
 
 	// //call api
 	// params := RequestParams{
-	// 	Method: "POST",
-	// 	Path:   "/oa",
+	// 	Method: "GET",
+	// 	Path:   "/deploy/getOAServer",
 	// 	Body:   request,
 	// }
 
@@ -324,6 +324,7 @@ func GetAllPackages(pol string) []common.PackageInfo {
 	package0.ID = "0B9111FE-F2F3-05AF-C7CE-35F536E15FDD"
 	package0.Status = "Waiting"
 	package0.Path = "Package"
+	package0.WinFile = "jobs/adobereader.bat"
 
 	var package1 common.PackageInfo
 	package1.AppName = "HP - LaserJet 4 Plus"

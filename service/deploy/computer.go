@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 )
 
@@ -26,11 +25,9 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 	name := getComputerName()
 	seed := getSeedLabel()
 	ip := getIP()
-	oa := api.GetOAServer(ip)
 
 	info.Name = name
 	info.Seed = seed
-	info.OA = oa
 	info.IP = ip
 
 	return info
