@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {InitClient,GetPrinterModels} from "../../../wailsjs/go/deploy/Deploy";
+import {InitClient,GetAllPackages,
+        GetPrinterModels
+} from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
 import { useAppContext } from '../../context/AppContext';
 
@@ -92,24 +94,20 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     // 使用上下文
     const appContext = useAppContext();
 
-  // useEffect(() => {
-  //   // 调用后端的 GetAllPackages 方法
-  //   const fetchPackages = async () => {
-  //     try {
-  //       // 使用 window.go.main.App 访问后端导出的方法
-  //       const allPackages = await window.go.main.App.GetAllPackages();
-  //       setPackages(allPackages);
-  //       console.log('获取所有包信息成功:', allPackages);
-  //     } catch (error) {
-  //       console.error('获取包信息失败:', error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-
-  //   fetchPackages();
-  // }, []);
-
+    const reloadTip = () => {
+      setIsLoading(false);
+      setConnected(false);
+      Modal.confirm({
+        title: 'Information',
+        icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+        content: 'Connection failed. Please try again.',
+        okText: 'Confirm',
+        centered: true,
+        okButtonProps: {
+          style: { backgroundColor: '#0052cc' }
+        }
+      })
+    }
   // 添加连接服务器的函数
   const connectToServer = async () => {
     // 检查 server 和 port 是否已输入
@@ -120,26 +118,31 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         content: 'Please input the server and port.',
         okText: 'Confirm',
         centered: true,
-        
+        okButtonProps: {
+          style: { backgroundColor: '#0052cc' }
+        }
       });
       return;
     }
     setIsLoading(true);
     // 设置定时器，3秒后将 isLoading 设置为 true
-    setTimeout(() => {
-      setIsLoading(false);
-      setConnected(true);
-    }, 3000);
-    // try {
-    //   // 初始化客户端连接
-    //   const info = await InitClient(server, port);
-
-    //   // ... 其他操作
-    // } catch (error) {
-    //   console.error('连接服务器失败:', error);
-    // } finally {
+    // setTimeout(() => {
     //   setIsLoading(false);
-    // }
+    //   setConnected(true);
+    // }, 3000);
+    try {
+      // 初始化客户端连接
+      const info = await InitClient(server, port);
+      getPrinterModels();
+      // ... 其他操作
+    } catch (error) {
+      console.error('连接服务器失败:', error);
+    } 
+    
+  };
+
+  // 获取打印机
+  const getPrinterModels = async () => {
     try {
       const models = await GetPrinterModels();
       console.log('获取打印机型号成功:', models);
@@ -151,9 +154,11 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       appContext.setPort(port);
 
     } catch (error) {
+      reloadTip();
       console.error('连接服务器失败:', error);
     } finally {
-      // setIsLoading(false);
+       setIsLoading(false);
+       setConnected(true);
     }
   };
 

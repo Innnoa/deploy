@@ -114,6 +114,12 @@ const useStyles = createStyles(({ css }) => ({
   buttonGroup: css`
     display: flex;
     gap: 16px;
+  `,
+  startButton: css`
+    background-color: #0052cc;
+    &:hover {
+    background-color: #013FBF !important;
+  }
   `
 }));
 
@@ -233,7 +239,7 @@ return (
         <div className={styles.buttonGroup}>
           <Button onClick={onDeployBack}>Back</Button>
           <Button danger onClick={handleCancel}>Cancel</Button>
-          <Button type="primary">Run</Button>
+          <Button type="primary" className={styles.startButton}>Run</Button>
         </div>
       </div>
     </div>

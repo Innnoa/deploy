@@ -95,6 +95,12 @@ const useStyles = createStyles(({ css }) => ({
   buttonGroup: css`
     display: flex;
     gap: 12px;
+  `,
+  startButton: css`
+    background-color: #0052cc;
+    &:hover {
+    background-color: #013FBF !important;
+  }
   `
 }));
 
@@ -187,6 +193,9 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         okText: 'Confirm',
         cancelText: 'Cancel',
         centered: true,
+        okButtonProps: {
+          style: { backgroundColor: '#0052cc' }
+        },
         onOk: () => {
           // 用户确认后的操作
           onSwitchToDeploy(); // 切换到Deploy组件
@@ -281,7 +290,8 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         <div className={styles.buttonGroup}>
           <Button onClick={onBack}>Back</Button>
           <Button danger onClick={handleCancel}>Cancel</Button>
-          <Button type="primary" onClick={handleNext}>NEXT</Button>
+          <Button type="primary" onClick={handleNext}
+                  className={styles.startButton}>NEXT</Button>
         </div>
       </div>
     </div>
