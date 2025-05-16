@@ -5,9 +5,16 @@ interface AppContextType {
   printerModels: string[];
   server: string;
   port: string;
+  computerInfo: {
+    name: string;
+    seed: string;
+    oa: string;
+    ip: string;
+  };
   setPrinterModels: (models: string[]) => void;
   setServer: (server: string) => void;
   setPort: (port: string) => void;
+  setComputerInfo: (info: {name: string; seed: string; oa: string; ip: string}) => void;
 }
 
 // 创建上下文
@@ -18,15 +25,23 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [printerModels, setPrinterModels] = useState<string[]>([]);
   const [server, setServer] = useState<string>('');
   const [port, setPort] = useState<string>('');
+  const [computerInfo, setComputerInfo] = useState({
+    name: '-',
+    seed: '-',
+    oa: '-',
+    ip: '-.-.-.-'
+  });
 
   // 提供上下文值
   const value = {
     printerModels,
     server,
     port,
+    computerInfo,
     setPrinterModels,
     setServer,
-    setPort
+    setPort,
+    setComputerInfo
   };
 
   return (

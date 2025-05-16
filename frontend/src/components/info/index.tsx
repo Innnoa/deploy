@@ -7,6 +7,7 @@ import seedName from '../../assets/images/seed-name.png';
 import serverName from '../../assets/images/server-name.png';
 import ipName from '../../assets/images/ip-name.png';
 import {GetComputerInfo} from "../../../wailsjs/go/deploy/Deploy";
+import { useAppContext } from '../../context/AppContext';
 
 // 使用 createStyles 定义样式
 const useStyles = createStyles(({ css }) => ({
@@ -89,27 +90,14 @@ const useStyles = createStyles(({ css }) => ({
   `
 }));
 
-interface InfoProps {
-  computerName?: string;
-  seed?: string;
-  oa?: string;
-  ipAddress?: string;
-}
 
 
-const Info: React.FC<InfoProps> = ({ 
-  computerName = '-', 
-  seed = '-', 
-  oa = '-', 
-  ipAddress = '-.-.-.-' 
-}) => {
+const Info: React.FC = () => {
   const { styles } = useStyles();
-  const [computerInfo, setComputerInfo] = useState({
-    name: computerName,
-    seed: seed,
-    oa: oa,
-    ip: ipAddress
-  });
+  const { computerInfo } = useAppContext();
+  // 使用上下文
+  const appContext = useAppContext();
+
 
   useEffect(() => {
     // 调用后端的 GetComputerInfo 方法
@@ -117,10 +105,10 @@ const Info: React.FC<InfoProps> = ({
       try {
         
         const info = await GetComputerInfo();
-        setComputerInfo({
+         appContext.setComputerInfo({
           name: info.name,
           seed: info.seed,
-          oa: info.oa,
+          oa:  '-',
           ip: info.ip
         });
       } catch (error) {

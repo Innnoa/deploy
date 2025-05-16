@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {InitClient,GetAllPackages,
-        GetPrinterModels
+import {InitClient,GetAllPackages,GetOAServer,
+        GetPrinterModels, GetNetworkPinterList
 } from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
 import { useAppContext } from '../../context/AppContext';
@@ -89,10 +89,10 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const [server, setServer] = useState<string>('');
     const [port, setPort] = useState<string>('');
     const [connected, setConnected] = useState<boolean>(false);
-    const [printerModels, setPrinterModels] = useState<string[]>([]);
 
     // 使用上下文
     const appContext = useAppContext();
+    const { computerInfo } = useAppContext();
 
     const reloadTip = () => {
       setIsLoading(false);
@@ -124,41 +124,76 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       });
       return;
     }
+
     setIsLoading(true);
-    // 设置定时器，3秒后将 isLoading 设置为 true
-    // setTimeout(() => {
-    //   setIsLoading(false);
-    //   setConnected(true);
-    // }, 3000);
+
     try {
       // 初始化客户端连接
       const info = await InitClient(server, port);
-      getPrinterModels();
+      appContext.setServer(server);
+      appContext.setPort(port);
+      getAllPackages();
+      getOAServer();
       // ... 其他操作
     } catch (error) {
-      console.error('连接服务器失败:', error);
+      
     } 
     
   };
 
-  // 获取打印机
+  // 获取OA
+  const getOAServer = async () => {
+    try {
+      const oaServer = await GetOAServer(appContext.computerInfo.ip);
+      appContext.setComputerInfo({
+        name: computerInfo.name,
+        seed: computerInfo.seed,
+        oa:  oaServer,
+        ip: computerInfo.ip,
+      });
+    } catch (error) {
+      reloadTip();
+      
+    } 
+  };
+  // 获取所有包
+  const getAllPackages = async () => {
+    try {
+      const models = await GetAllPackages(appContext.computerInfo.name);
+      getPrinterModels();
+    } catch (error) {
+      reloadTip();
+      
+    } 
+  };
+
+  // 获取打印机品牌
   const getPrinterModels = async () => {
     try {
       const models = await GetPrinterModels();
-      console.log('获取打印机型号成功:', models);
-      setPrinterModels(models);
 
       // 同时保存到上下文中
       appContext.setPrinterModels(models);
-      appContext.setServer(server);
-      appContext.setPort(port);
+      
+     getNetworkPinterList();
+
+   
 
     } catch (error) {
       reloadTip();
-      console.error('连接服务器失败:', error);
+    } 
+  };
+
+  // 获取网络打印机
+  const getNetworkPinterList = async () => {
+    try {
+      const models = await GetNetworkPinterList("");
+
+    } catch (error) {
+      reloadTip();
     } finally {
-       setIsLoading(false);
-       setConnected(true);
+      setIsLoading(false);
+      setConnected(true);
     }
   };
 
