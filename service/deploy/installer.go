@@ -198,7 +198,6 @@ func (p *Deploy) DoInstall() {
 		}
 
 		os.Setenv("SRC", "\\\\"+common.CurrentOA+"\\"+shareName+"\\"+value.Path)
-		os.Setenv("SEED_OS", "CW11")
 		// 执行第一个bat文件
 		batOutput, err := runScript(localPath)
 		if err != nil {
