@@ -134,14 +134,14 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       appContext.setPort(port);
       getAllPackages();
       getOAServer();
-      // ... 其他操作
-    } catch (error) {
       
+    } catch (error) {
+      reloadTip();
     } 
     
   };
 
-  // 获取OA
+  // 获取OAServer
   const getOAServer = async () => {
     try {
       const oaServer = await GetOAServer(appContext.computerInfo.ip);
@@ -153,7 +153,6 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       });
     } catch (error) {
       reloadTip();
-      
     } 
   };
   // 获取所有包
@@ -163,7 +162,6 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       getPrinterModels();
     } catch (error) {
       reloadTip();
-      
     } 
   };
 
@@ -171,14 +169,10 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getPrinterModels = async () => {
     try {
       const models = await GetPrinterModels();
-
-      // 同时保存到上下文中
+      // 保存到上下文中
       appContext.setPrinterModels(models);
       
-     getNetworkPinterList();
-
-   
-
+      getNetworkPinterList();
     } catch (error) {
       reloadTip();
     } 

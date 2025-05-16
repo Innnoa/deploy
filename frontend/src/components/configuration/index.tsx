@@ -228,10 +228,23 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
       setPrinterModel(value);
       try {
         const drivers = await GetPrinterDrivers(value);
-        // 假设返回的是字符串数组
-        // setDriverOptions((drivers || []).map((d: string) => ({ value: d, label: d })));
+         // 将drivers数组中的每个对象的app_name提取出来作为选项
+          const driverOpts = Array.isArray(drivers) 
+          ? drivers.map((driver: any) => ({ 
+              value: driver.app_name, 
+              label: driver.app_name 
+            }))
+          : [];
+        setDriverOptions(driverOpts);
+        // 如果有驱动选项，自动选择第一个
+        if (driverOpts.length > 0) {
+          setPrinterDriver(driverOpts[0].value);
+        }else{
+          setPrinterDriver(undefined);
+        }
       } catch (e) {
         setDriverOptions([]);
+        setPrinterDriver(undefined);
       }
     };
 
@@ -253,6 +266,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
           <Select style={{ width: 350, textAlign: 'left'  }} placeholder="select" 
             options={driverOptions} dropdownStyle={{ textAlign: 'left' }}
             onChange={(value) => setPrinterDriver(value)}
+            value={printerDriver}
             />
         </div>
       </div>
