@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"recovery-unit-deploy/service/common"
-	"strings"
 	"time"
 )
 
@@ -28,24 +27,24 @@ type RequestParams struct {
 }
 
 type PublicRequest struct {
-	AccessKeyId string `json:"accessKeyId"`
 	Signature   string `json:"signature"`
 	Timestamp   string `json:"timestamp"`
+	AccessKeyId string `json:"accessKeyId"`
 }
 
 type PublicResponse struct {
-	RequestId string `json:"requestId"`
-	Code      string `json:"code"`
+	Message string `json:"message"`
+	Code    int    `json:"code"`
 }
 
 type OAServerRequest struct {
-	IP        string `json:"ip"`
 	PublicReq PublicRequest
+	IP        string `json:"ip"`
 }
 
 type OAServerResponse struct {
-	Name       string `json:"name"`
-	PublicResp PublicResponse
+	PublicResponse
+	Data common.OAServer `json:"data"`
 }
 
 type PrinterModelResponse struct {
@@ -83,68 +82,85 @@ type PrinterDriverResponse struct {
 	PublicResp PublicResponse
 }
 
-var Client HTTPClient
+var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
 
-func (c *HTTPClient) SendRequest(params RequestParams) ([]byte, int, error) {
-	// 1. 构建完整URL
-	u, err := url.Parse(c.BaseURL + params.Path)
+type APIClient struct {
+	BaseURL    string
+	Headers    map[string]string
+	Timeout    time.Duration
+	HTTPClient *http.Client
+}
+
+func NewAPIClient(baseURL string) *APIClient {
+	return &APIClient{
+		BaseURL:    baseURL,
+		Headers:    make(map[string]string),
+		Timeout:    10 * time.Second,
+		HTTPClient: &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+func (c *APIClient) CallAPI(
+	method string,
+	endpoint string,
+	body interface{},
+	queryParams map[string]string,
+) ([]byte, int, error) {
+	// 构建完整URL
+	u, err := url.Parse(c.BaseURL + endpoint)
 	if err != nil {
 		return nil, 0, fmt.Errorf("URL解析失败: %w", err)
 	}
 
-	// 2. 处理查询参数
+	// 添加查询参数
 	q := u.Query()
-	for k, v := range params.Query {
+	for k, v := range queryParams {
 		q.Add(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// 3. 构建请求体
-	var body io.Reader
-	switch v := params.Body.(type) {
-	case map[string]interface{}:
-		if params.Method == "POST" || params.Method == "PUT" {
-			jsonData, _ := json.Marshal(v)
-			body = bytes.NewReader(jsonData)
-			params.Headers["Content-Type"] = "application/json"
+	// 序列化请求体
+	var reqBody io.Reader
+	if body != nil {
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return nil, 0, fmt.Errorf("JSON序列化失败: %w", err)
 		}
-	case url.Values: // Form数据
-		body = strings.NewReader(v.Encode())
-		params.Headers["Content-Type"] = "application/x-www-form-urlencoded"
-	case string:
-		body = strings.NewReader(v)
+		reqBody = bytes.NewBuffer(jsonData)
 	}
 
-	// 4. 创建请求对象
-	req, err := http.NewRequest(params.Method, u.String(), body)
+	// 创建请求对象
+	req, err := http.NewRequest(method, u.String(), reqBody)
 	if err != nil {
 		return nil, 0, fmt.Errorf("请求创建失败: %w", err)
 	}
 
-	// 5. 设置请求头
-	for k, v := range params.Headers {
+	// 设置请求头
+	for k, v := range c.Headers {
 		req.Header.Set(k, v)
 	}
-
-	// 6. 配置超时客户端
-	client := c.Client
-	if params.Timeout > 0 {
-		client = &http.Client{Timeout: params.Timeout}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
 	}
 
-	// 7. 发送请求
-	resp, err := client.Do(req)
+	// 发送请求
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, 0, fmt.Errorf("请求发送失败: %w", err)
+		return nil, 0, fmt.Errorf("网络请求失败: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// 8. 读取响应
+	// 读取响应体
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("响应读取失败: %w", err)
+	}
+
+	// 检查状态码
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return respBody, resp.StatusCode, fmt.Errorf("异常状态码: %d", resp.StatusCode)
 	}
 
 	return respBody, resp.StatusCode, nil
@@ -153,45 +169,40 @@ func (c *HTTPClient) SendRequest(params RequestParams) ([]byte, int, error) {
 func GetOAServer(ip string) string {
 	log.Printf("get OAServer from ip: %s", ip)
 
-	// var request OAServerRequest
-	// request.IP = ip
+	var request OAServerRequest
+	request.IP = ip
 
-	// var public PublicRequest
-	// public.AccessKeyId = ACCESS_KEY
-	// public.Timestamp = getCurrentTimestamp()
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
 
-	// request.PublicReq = public
+	request.PublicReq = public
 
-	// m := structToMap(request, "Signature")
-	// public.Signature = generateSignature(m)
+	m := structToMap(request)
+	public.Signature = generateSignature(m)
 
-	// //call api
-	// params := RequestParams{
-	// 	Method: "GET",
-	// 	Path:   "/deploy/getOAServer",
-	// 	Body:   request,
-	// }
+	m["signature"] = public.Signature
 
-	// body, status, err := Client.SendRequest(params)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getOAServer", nil, m)
 
-	// if err != nil {
-	// 	log.Printf("请求异常: %v", err)
-	// 	return ""
-	// }
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return ""
+	}
 
-	// if status != http.StatusOK {
-	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
-	// 	return ""
-	// }
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return ""
+	}
 
-	// var result OAServerResponse
-	// if err := json.Unmarshal(body, &result); err != nil {
-	// 	log.Printf("JSON解析失败: %v", err)
-	// 	return ""
-	// }
+	var result OAServerResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return ""
+	}
 
-	// common.CurrentOA = result.Name
-	common.CurrentOA = "192.168.49.48"
+	common.CurrentOA = result.Data.ServerName
+	// common.CurrentOA = "192.168.49.48"
 	return common.CurrentOA
 }
 

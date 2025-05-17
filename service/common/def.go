@@ -1,8 +1,8 @@
 package common
 
 type OAServer struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string `json:"id"`
+	ServerName string `json:"serverName"`
 }
 
 type ComputerInfo struct {
