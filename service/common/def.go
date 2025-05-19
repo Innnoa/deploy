@@ -5,6 +5,11 @@ type OAServer struct {
 	ServerName string `json:"serverName"`
 }
 
+type PrinterModel struct {
+	ID    string `json:"id"`
+	Brand string `json:"brand"`
+}
+
 type ComputerInfo struct {
 	Name string `json:"name"`
 	Seed string `json:"seed"`
@@ -20,12 +25,13 @@ type Printer struct {
 
 type PackageInfo struct {
 	ID        string `json:"id"`
-	AppName   string `json:"app_name"`
-	AppType   string `json:"app_type"`
-	Path      string `json:"path"`
-	WinFile   string `json:"win_file"`
-	UOSFile   string `json:"uos_file"`
-	KylinFile string `json:"kylin_file"`
+	AppName   string `json:"appname"`
+	BrandId   string `json:"brandId"`
+	AppType   string `json:"apptype"`
+	Path      string `json:"installpath"`
+	WinFile   string `json:"winfile"`
+	UOSFile   string `json:"uosdeb"`
+	KylinFile string `json:"kylindeb"`
 	Status    string `json:"status"`
 	Error     string `json:"error"`
 }

@@ -48,18 +48,18 @@ type OAServerResponse struct {
 }
 
 type PrinterModelResponse struct {
-	Models     []string `json:"models"`
-	PublicResp PublicResponse
+	PublicResponse
+	Data []common.PrinterModel `json:"data"`
 }
 
 type NetworkPrinterRequest struct {
-	Keyword   string `json:"keyword"`
-	PublicReq PublicRequest
+	PublicRequest
+	// Keyword   string `json:"keyword"`
 }
 
 type NetworkPrinterResponse struct {
-	Printers   []common.Printer `json:"printers"`
-	PublicResp PublicResponse
+	PublicResponse
+	Data []common.Printer `json:"data"`
 }
 
 type PackageRequest struct {
@@ -73,13 +73,13 @@ type PackageResponse struct {
 }
 
 type PrinterDriverRequest struct {
-	Printers  []string `json:"printers"`
-	PublicReq PublicRequest
+	PublicRequest
+	ID string `json:"brandid"`
 }
 
 type PrinterDriverResponse struct {
-	Pakcages   []common.PackageInfo `json:"packages"`
-	PublicResp PublicResponse
+	PublicResponse
+	Data []common.PackageInfo `json:"data"`
 }
 
 var Client *APIClient
@@ -206,88 +206,115 @@ func GetOAServer(ip string) string {
 	return common.CurrentOA
 }
 
-func GetPrinterModels() []string {
-	// var public PublicRequest
-	// public.AccessKeyId = ACCESS_KEY
-	// public.Timestamp = getCurrentTimestamp()
+func GetPrinterModels() []common.PrinterModel {
+	log.Printf("get Printer models.")
 
-	// m := structToMap(public, "Signature")
-	// public.Signature = generateSignature(m)
+	var models []common.PrinterModel
 
-	// //call api
-	// params := RequestParams{
-	// 	Method: "GET",
-	// 	Path:   "/printer/models",
-	// 	Body:   public,
-	// }
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
 
-	// body, status, err := Client.SendRequest(params)
+	m := structToMap(public)
+	public.Signature = generateSignature(m)
 
-	// if err != nil {
-	// 	log.Printf("请求异常: %v", err)
-	// 	return nil
-	// }
+	m["signature"] = public.Signature
 
-	// if status != http.StatusOK {
-	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
-	// 	return nil
-	// }
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getPrinterBrands", nil, m)
 
-	// var result PrinterModelResponse
-	// if err := json.Unmarshal(body, &result); err != nil {
-	// 	log.Printf("JSON解析失败: %v", err)
-	// 	return nil
-	// }
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return models
+	}
 
-	// return result.Models
-	return []string{"HP", "Epson", "Brother"}
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return models
+	}
+
+	var result PrinterModelResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return models
+	}
+
+	models = result.Data
+
+	return models
+}
+
+func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
+	log.Printf("get driver list of printer from model.")
+
+	var drivers []common.PackageInfo
+
+	var request PrinterDriverRequest
+	request.ID = id
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByBrand", nil, m)
+
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return drivers
+	}
+
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return drivers
+	}
+
+	var result PrinterDriverResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return drivers
+	}
+
+	return result.Data
 }
 
 func GetNetworkPinterList(keyword string) []common.Printer {
-	// var request NetworkPrinterRequest
-	// request.Keyword = keyword
+	log.Printf("get network printer list.")
 
-	// var public PublicRequest
-	// public.AccessKeyId = ACCESS_KEY
-	// public.Timestamp = getCurrentTimestamp()
+	var printers []common.Printer
 
-	// request.PublicReq = public
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
 
-	// m := structToMap(public, "Signature")
-	// public.Signature = generateSignature(m)
+	m := structToMap(public)
+	public.Signature = generateSignature(m)
 
-	// //call api
-	// params := RequestParams{
-	// 	Method: "GET",
-	// 	Path:   "/printer/network",
-	// 	Body:   request,
-	// }
+	m["signature"] = public.Signature
 
-	// body, status, err := Client.SendRequest(params)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getNetworkPrinters", nil, m)
 
-	// if err != nil {
-	// 	log.Printf("请求异常: %v", err)
-	// 	return nil
-	// }
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return printers
+	}
 
-	// if status != http.StatusOK {
-	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
-	// 	return nil
-	// }
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return printers
+	}
 
-	// var result NetworkPrinterResponse
-	// if err := json.Unmarshal(body, &result); err != nil {
-	// 	log.Printf("JSON解析失败: %v", err)
-	// 	return nil
-	// }
+	var result NetworkPrinterResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return printers
+	}
 
-	// return result.Printers
-	var printer0 common.Printer
-	printer0.PolNo = "P87520"
-	printer0.IP = "192.168.11.200"
-
-	printers := []common.Printer{printer0}
-	return printers
+	return result.Data
 }
 
 func GetAllPackages(pol string) []common.PackageInfo {
@@ -347,7 +374,7 @@ func GetAllPackages(pol string) []common.PackageInfo {
 	return packages
 }
 
-func GetPrinterDrivers(printers []common.Printer) []common.PackageInfo {
+func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	// var request PrinterDriverRequest
 	// for _, value := range printers {
 	// 	request.Printers = append(request.Printers, value.ID)

@@ -3,7 +3,6 @@ package deploy
 import (
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
-	"strings"
 )
 
 func (p *Deploy) GetNetworkPinterList(keyword string) []common.Printer {
@@ -11,19 +10,13 @@ func (p *Deploy) GetNetworkPinterList(keyword string) []common.Printer {
 	return printers
 }
 
-func (p *Deploy) GetPrinterModels() []string {
+func (p *Deploy) GetPrinterModels() []common.PrinterModel {
 	models := api.GetPrinterModels()
 	return models
 }
 
-func (p *Deploy) GetPrinterDrivers(model string) []common.PackageInfo {
-	var drivers []common.PackageInfo
-
-	for _, value := range localPrinterDriverList {
-		if strings.HasPrefix(value.AppName, model) {
-			drivers = append(drivers, value)
-		}
-	}
+func (p *Deploy) GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
+	drivers := api.GetSelectedLocalPrinterDrivers(id)
 	return drivers
 }
 
