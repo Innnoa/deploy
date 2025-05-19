@@ -54,7 +54,7 @@ type PrinterModelResponse struct {
 
 type NetworkPrinterRequest struct {
 	PublicRequest
-	// Keyword   string `json:"keyword"`
+	Keyword string `json:"searchkey"`
 }
 
 type NetworkPrinterResponse struct {
@@ -63,21 +63,22 @@ type NetworkPrinterResponse struct {
 }
 
 type PackageRequest struct {
-	Pol       string `json:"pol"`
-	PublicReq PublicRequest
+	PublicRequest
+	Pol  string `json:"pol"`
+	Seed string `json:"seedlabel"`
 }
 
 type PackageResponse struct {
-	Packages   []common.PackageInfo `json:"packages"`
-	PublicResp PublicResponse
+	PublicResponse
+	Data []common.PackageInfo `json:"data"`
 }
 
-type PrinterDriverRequest struct {
+type LocalPrinterDriverRequest struct {
 	PublicRequest
 	ID string `json:"brandid"`
 }
 
-type PrinterDriverResponse struct {
+type LocalPrinterDriverResponse struct {
 	PublicResponse
 	Data []common.PackageInfo `json:"data"`
 }
@@ -201,9 +202,9 @@ func GetOAServer(ip string) string {
 		return ""
 	}
 
-	common.CurrentOA = result.Data.ServerName
+	common.CurrentComputerInfo.OA = result.Data.ServerName
 	// common.CurrentOA = "192.168.49.48"
-	return common.CurrentOA
+	return common.CurrentComputerInfo.OA
 }
 
 func GetPrinterModels() []common.PrinterModel {
@@ -248,7 +249,7 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 
 	var drivers []common.PackageInfo
 
-	var request PrinterDriverRequest
+	var request LocalPrinterDriverRequest
 	request.ID = id
 
 	var public PublicRequest
@@ -273,7 +274,7 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 		return drivers
 	}
 
-	var result PrinterDriverResponse
+	var result LocalPrinterDriverResponse
 	if err := json.Unmarshal(data, &result); err != nil {
 		log.Printf("JSON解析失败: %v", err)
 		return drivers
@@ -287,14 +288,19 @@ func GetNetworkPinterList(keyword string) []common.Printer {
 
 	var printers []common.Printer
 
+	var request NetworkPrinterRequest
+	request.Keyword = keyword
+
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
 	public.Timestamp = getCurrentTimestamp()
 
-	m := structToMap(public)
-	public.Signature = generateSignature(m)
+	request.PublicRequest = public
 
-	m["signature"] = public.Signature
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
+
+	m["signature"] = request.Signature
 
 	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getNetworkPrinters", nil, m)
 
@@ -308,70 +314,57 @@ func GetNetworkPinterList(keyword string) []common.Printer {
 		return printers
 	}
 
+	log.Printf("server returns network printer : %s", string(data))
+
 	var result NetworkPrinterResponse
 	if err := json.Unmarshal(data, &result); err != nil {
 		log.Printf("JSON解析失败: %v", err)
 		return printers
 	}
 
+	log.Printf("Unmarshal network printer : %v", result)
+
 	return result.Data
 }
 
-func GetAllPackages(pol string) []common.PackageInfo {
-	// var request PackageRequest
-	// request.Pol = pol
+func GetAllPackages(pol string, seed string) []common.PackageInfo {
+	log.Printf("get all application that the computer can install by pol and seed.")
 
-	// var public PublicRequest
-	// public.AccessKeyId = ACCESS_KEY
-	// public.Timestamp = getCurrentTimestamp()
+	var apps []common.PackageInfo
 
-	// request.PublicReq = public
+	var request PackageRequest
+	request.Pol = pol
+	request.Seed = seed
 
-	// m := structToMap(public, "Signature")
-	// public.Signature = generateSignature(m)
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
 
-	// //call api
-	// params := RequestParams{
-	// 	Method: "POST",
-	// 	Path:   "/packages",
-	// 	Body:   request,
-	// }
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
 
-	// body, status, err := Client.SendRequest(params)
+	m["signature"] = request.Signature
 
-	// if err != nil {
-	// 	log.Printf("请求异常: %v", err)
-	// 	return nil
-	// }
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getInstallableApps", nil, m)
 
-	// if status != http.StatusOK {
-	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
-	// 	return nil
-	// }
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return apps
+	}
 
-	// var result PackageResponse
-	// if err := json.Unmarshal(body, &result); err != nil {
-	// 	log.Printf("JSON解析失败: %v", err)
-	// 	return nil
-	// }
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return apps
+	}
 
-	// return result.Pakcages
-	var package0 common.PackageInfo
-	package0.AppName = "FireFox08"
-	package0.AppType = "ForceApp"
-	package0.ID = "0B9111FE-F2F3-05AF-C7CE-35F536E15FDD"
-	package0.Status = "Waiting"
-	package0.Path = "Package"
-	package0.WinFile = "jobs/adobereader.bat"
+	var result PackageResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return apps
+	}
 
-	var package1 common.PackageInfo
-	package1.AppName = "HP - LaserJet 4 Plus"
-	package1.AppType = "Printer"
-	package1.ID = "A2A50752-E653-5772-CBB4-5D89E4CB8E76"
-	package1.Status = "Waiting"
-
-	packages := []common.PackageInfo{package0, package1}
-	return packages
+	return result.Data
 }
 
 func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {

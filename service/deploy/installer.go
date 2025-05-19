@@ -197,7 +197,7 @@ func (p *Deploy) DoInstall() {
 			fmt.Println("文件成功拷贝至:", localPath)
 		}
 
-		os.Setenv("SRC", "\\\\"+common.CurrentOA+"\\"+shareName+"\\"+value.Path)
+		os.Setenv("SRC", "\\\\"+common.CurrentComputerInfo.OA+"\\"+shareName+"\\"+value.Path)
 		// 执行第一个bat文件
 		batOutput, err := runScript(localPath)
 		if err != nil {
