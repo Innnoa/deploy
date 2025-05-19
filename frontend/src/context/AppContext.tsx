@@ -10,6 +10,7 @@ interface NetworkPinterModel {
   id: string;
   pol: string;
   ip: string;
+  appid: string;
 }
 interface AppContextType {
   networkPinterModels: NetworkPinterModel[];

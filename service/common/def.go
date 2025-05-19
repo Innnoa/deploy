@@ -21,6 +21,7 @@ type Printer struct {
 	ID    string `json:"id"`
 	PolNo string `json:"pol"`
 	IP    string `json:"ip"`
+	AppId string `json:"appid"`
 }
 
 type PackageInfo struct {

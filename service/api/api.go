@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"recovery-unit-deploy/service/common"
+	"strings"
 	"time"
 )
 
@@ -79,6 +80,16 @@ type LocalPrinterDriverRequest struct {
 }
 
 type LocalPrinterDriverResponse struct {
+	PublicResponse
+	Data []common.PackageInfo `json:"data"`
+}
+
+type NetworkPrinterDriverRequest struct {
+	PublicRequest
+	AppIds string `json:"appids"`
+}
+
+type NetworkPrinterDriverResponse struct {
 	PublicResponse
 	Data []common.PackageInfo `json:"data"`
 }
@@ -368,52 +379,44 @@ func GetAllPackages(pol string, seed string) []common.PackageInfo {
 }
 
 func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
-	// var request PrinterDriverRequest
-	// for _, value := range printers {
-	// 	request.Printers = append(request.Printers, value.ID)
-	// }
+	log.Printf("get selected network printer drivers.")
+	var apps []common.PackageInfo
 
-	// var public PublicRequest
-	// public.AccessKeyId = ACCESS_KEY
-	// public.Timestamp = getCurrentTimestamp()
+	var request NetworkPrinterDriverRequest
+	var ids []string
+	for _, value := range printers {
+		ids = append(ids, value.AppId)
+	}
 
-	// request.PublicReq = public
+	request.AppIds = strings.Join(ids, ",")
 
-	// m := structToMap(public, "Signature")
-	// public.Signature = generateSignature(m)
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
 
-	// //call api
-	// params := RequestParams{
-	// 	Method: "POST",
-	// 	Path:   "/printer/driver",
-	// 	Body:   request,
-	// }
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
 
-	// body, status, err := Client.SendRequest(params)
+	m["signature"] = request.Signature
 
-	// if err != nil {
-	// 	log.Printf("请求异常: %v", err)
-	// 	return nil
-	// }
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByIds", nil, m)
 
-	// if status != http.StatusOK {
-	// 	log.Printf("业务错误: HTTP %d → %s", status, string(body))
-	// 	return nil
-	// }
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return apps
+	}
 
-	// var result PackageResponse
-	// if err := json.Unmarshal(body, &result); err != nil {
-	// 	log.Printf("JSON解析失败: %v", err)
-	// 	return nil
-	// }
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return apps
+	}
 
-	// return result.Packages
-	var package0 common.PackageInfo
-	package0.AppName = "HP - LaserJet 4 Plus"
-	package0.AppType = "Printer"
-	package0.ID = "A2A50752-E653-5772-CBB4-5D89E4CB8E76"
-	package0.Status = "Waiting"
+	var result NetworkPrinterDriverResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return apps
+	}
 
-	packages := []common.PackageInfo{package0}
-	return packages
+	return result.Data
 }
