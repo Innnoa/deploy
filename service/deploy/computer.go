@@ -52,5 +52,7 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 	info.Seed = seed
 	info.IP = ip
 
-	return info
+	common.CurrentComputerInfo = info
+
+	return common.CurrentComputerInfo
 }

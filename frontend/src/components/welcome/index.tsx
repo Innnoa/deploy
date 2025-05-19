@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {InitClient,GetAllPackages,GetOAServer,
+import {InitClient,GetOAServer,
         GetPrinterModels, GetNetworkPinterList
 } from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
@@ -132,7 +132,8 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       const info = await InitClient(server, port);
       appContext.setServer(server);
       appContext.setPort(port);
-      getAllPackages();
+      // getAllPackages();
+      getPrinterModels();
       getOAServer();
       
     } catch (error) {
@@ -155,15 +156,15 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       reloadTip();
     } 
   };
-  // 获取所有包
-  const getAllPackages = async () => {
-    try {
-      const models = await GetAllPackages(appContext.computerInfo.name);
-      getPrinterModels();
-    } catch (error) {
-      reloadTip();
-    } 
-  };
+  // // 获取所有包
+  // const getAllPackages = async () => {
+  //   try {
+  //     const models = await GetAllPackages(appContext.computerInfo.name);
+  //     getPrinterModels();
+  //   } catch (error) {
+  //     reloadTip();
+  //   } 
+  // };
 
   // 获取打印机品牌
   const getPrinterModels = async () => {

@@ -1,6 +1,6 @@
 package common
 
-var CurrentOA string
+var CurrentComputerInfo ComputerInfo
 
 var Server string
 var Port string
