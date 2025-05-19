@@ -4,7 +4,7 @@ import { SearchOutlined ,ExclamationCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppContext } from '../../context/AppContext';
-import { GetSelectedLocalPrinterDrivers } from "../../../wailsjs/go/deploy/Deploy"; 
+import { GetSelectedLocalPrinterDrivers, SetSelectedPrinters } from "../../../wailsjs/go/deploy/Deploy"; 
 
 const useStyles = createStyles(({ css }) => ({
   configContainer: css`
@@ -105,8 +105,8 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 interface PrinterData {
-  key: string;
-  polNo: string;
+  id: string;
+  pol: string;
   ip: string;
 }
 interface ConfigurationProps {
@@ -117,28 +117,22 @@ interface ConfigurationProps {
 const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}) => {
   const { styles } = useStyles();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [printerModel, setPrinterModel] = useState<string | undefined>();
-  const [printerDriver, setPrinterDriver] = useState<string | undefined>();
+  const [printerModel, setPrinterModel] = useState<string>("");
+  const [printerDriver, setPrinterDriver] = useState<string>("");
   const [driverOptions, setDriverOptions] = useState<{value: string, label: string}[]>([]);
 
   // 使用上下文获取数据
-  const { printerModels, server, port } = useAppContext();
+  const { printerModels,networkPinterModels, server, port } = useAppContext();
 
   const printerData: PrinterData[] = [
-    { key: '1', polNo: 'P123141', ip: '10.50.234.180' },
-    { key: '2', polNo: 'P123141', ip: '10.50.234.180' },
-    { key: '3', polNo: 'P123141', ip: '10.50.234.180' },
-    { key: '4', polNo: 'P123141', ip: '10.50.234.180' },
-    { key: '5', polNo: 'P123141', ip: '10.50.234.180' },
-    { key: '6', polNo: 'P123141', ip: '10.50.234.180' },
-    { key: '7', polNo: 'P123141', ip: '10.50.234.180' },
-    // { key: '8', polNo: 'P123141', ip: '10.50.234.180' },
-    // { key: '9', polNo: 'P123141', ip: '10.50.234.180' },
-    // { key: '10', polNo: 'P123141', ip: '10.50.234.180' },
-
-
-    
-
+    { id: '1', pol: 'P123141', ip: '10.50.234.180' },
+    { id: '2', pol: 'P123141', ip: '10.50.234.180' },
+    { id: '3', pol: 'P123141', ip: '10.50.234.180' },
+    { id: '4', pol: 'P123141', ip: '10.50.234.180' },
+    { id: '5', pol: 'P123141', ip: '10.50.234.180' },
+    { id: '6', pol: 'P123141', ip: '10.50.234.180' },
+    { id: '7', pol: 'P123141', ip: '10.50.234.180' },
+ 
   ];
 
    // 将 printerModels 转换为 Select 组件需要的 options 格式
@@ -149,9 +143,9 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
 
   const columns: ColumnsType<PrinterData> = [
     {
-      title: 'Pol No',
-      dataIndex: 'polNo',
-      key: 'polNo',
+      title: 'Pol No.',
+      dataIndex: 'pol',
+      key: 'pol',
     },
     {
       title: 'IP',
@@ -172,7 +166,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
   const getTableScroll = () => {
     const rowHeight = 47; // 每行高度（根据实际情况调整）
     const headerHeight = 47; // 表头高度（根据实际情况调整）
-    const contentHeight = printerData.length * rowHeight + headerHeight ;
+    const contentHeight = networkPinterModels.length * rowHeight + headerHeight ;
     console.log('contentHeight =',contentHeight);
     
     const maxHeight = window.innerHeight - 470;
@@ -182,9 +176,11 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     return contentHeight > maxHeight ? { y: 'calc(100vh - 510px)' } : {};
   };
   const handleNext = () => {
+    
     console.log('打印机型号:', printerModel);
     console.log('打印机驱动:', printerDriver);
     console.log('选中的打印机:', selectedRowKeys);
+
     if (!printerModel && !printerDriver && selectedRowKeys.length === 0) {
       Modal.confirm({
         title: 'Information',
@@ -204,11 +200,43 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         }
       });
     } else {
-      // 正常继续的逻辑
-      onSwitchToDeploy(); // 切换到Deploy组件
-      console.log('继续下一步');
+      Modal.info({
+        title: '当前配置信息',
+        icon: <ExclamationCircleFilled style={{ color: '#1890ff' }} />,
+        content: (
+          <div style={{ marginTop: 16 }}>
+            <p>打印机型号: {printerModel || '未选择'}</p>
+            <p>打印机驱动: {printerDriver || '未选择'}</p>
+            <p>选中的打印机: {selectedRowKeys.length > 0 ? JSON.stringify(selectedRowKeys) : '未选择'}</p>
+          </div>
+        ),
+        okText: '确定',
+        centered: true,
+        okButtonProps: {
+          style: { backgroundColor: '#0052cc' }
+        },
+        onOk: () => {
+          
+            setSelectedPrintersAction(); // 切换到Deploy组件
+          
+        }
+      });
+
+      
     }
   };
+
+    // 上传数据 跳转Deploy
+    const setSelectedPrintersAction = async () => {
+      try {
+        const selectedPrinters = selectedRowKeys.map(idx => networkPinterModels[Number(idx)]);
+        const models = await SetSelectedPrinters(printerDriver, selectedPrinters);
+        onSwitchToDeploy(); // 切换到Deploy组件
+      } catch (error) {
+        
+      } 
+    };
+
   //退出程序
   const handleCancel = () => {
     Modal.confirm({
@@ -231,8 +259,8 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
          // 将drivers数组中的每个对象的app_name提取出来作为选项
           const driverOpts = Array.isArray(drivers) 
           ? drivers.map((driver: any) => ({ 
-              value: driver.app_name, 
-              label: driver.app_name 
+              value: driver.id, 
+              label: driver.appname 
             }))
           : [];
         setDriverOptions(driverOpts);
@@ -240,11 +268,11 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         if (driverOpts.length > 0) {
           setPrinterDriver(driverOpts[0].value);
         }else{
-          setPrinterDriver(undefined);
+          setPrinterDriver("");
         }
       } catch (e) {
         setDriverOptions([]);
-        setPrinterDriver(undefined);
+        setPrinterDriver("");
       }
     };
 
@@ -286,9 +314,10 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
           className={styles.customTable}
           rowSelection={rowSelection}
           columns={columns}
-          dataSource={printerData}
+          dataSource={networkPinterModels}
           pagination={false}
           size="middle"
+          rowKey="id"
           bordered={false}
             // scroll={{ y: 'calc(100vh - 510px)' }} /* 设置表格内部滚动 */
           scroll={getTableScroll() || undefined}

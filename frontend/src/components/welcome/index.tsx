@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {InitClient,GetAllPackages,GetOAServer,
+import {InitClient,GetOAServer,
         GetPrinterModels, GetNetworkPinterList
 } from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
@@ -86,8 +86,8 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const { styles } = useStyles();
     const [packages, setPackages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [server, setServer] = useState<string>('');
-    const [port, setPort] = useState<string>('');
+    const [server, setServer] = useState<string>('192.168.14.107');
+    const [port, setPort] = useState<string>('9900');
     const [connected, setConnected] = useState<boolean>(false);
 
     // 使用上下文
@@ -132,7 +132,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       const info = await InitClient(server, port);
       appContext.setServer(server);
       appContext.setPort(port);
-      getAllPackages();
+      getPrinterModels();
       getOAServer();
       
     } catch (error) {
@@ -155,15 +155,6 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       reloadTip();
     } 
   };
-  // 获取所有包
-  const getAllPackages = async () => {
-    try {
-      const models = await GetAllPackages(appContext.computerInfo.name);
-      getPrinterModels();
-    } catch (error) {
-      reloadTip();
-    } 
-  };
 
   // 获取打印机品牌
   const getPrinterModels = async () => {
@@ -182,6 +173,8 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getNetworkPinterList = async () => {
     try {
       const models = await GetNetworkPinterList("");
+      // 保存到上下文中
+      appContext.setNetworkPinterModels(models as any[]);
 
     } catch (error) {
       reloadTip();

@@ -6,7 +6,13 @@ interface PrinterModel {
   id: string;
   brand: string;
 }
+interface NetworkPinterModel {
+  id: string;
+  pol: string;
+  ip: string;
+}
 interface AppContextType {
+  networkPinterModels: NetworkPinterModel[];
   printerModels: PrinterModel[];
   server: string;
   port: string;
@@ -16,6 +22,7 @@ interface AppContextType {
     oa: string;
     ip: string;
   };
+  setNetworkPinterModels: (models: NetworkPinterModel[]) => void;
   setPrinterModels: (models: PrinterModel[]) => void;
   setServer: (server: string) => void;
   setPort: (port: string) => void;
@@ -27,6 +34,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // 创建上下文提供者组件
 export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+
+  const [networkPinterModels, setNetworkPinterModels] = useState<NetworkPinterModel[]>([]); // 新增 NetworkPinterModels 状态和 setNetworkPinterModels 函数
   const [printerModels, setPrinterModels] = useState<PrinterModel[]>([]);
   const [server, setServer] = useState<string>('');
   const [port, setPort] = useState<string>('');
@@ -39,10 +48,12 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   // 提供上下文值
   const value = {
+    networkPinterModels,
     printerModels,
     server,
     port,
     computerInfo,
+    setNetworkPinterModels,
     setPrinterModels,
     setServer,
     setPort,
