@@ -4,7 +4,7 @@ import { SearchOutlined ,ExclamationCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppContext } from '../../context/AppContext';
-import { GetPrinterDrivers } from "../../../wailsjs/go/deploy/Deploy"; 
+import { GetSelectedLocalPrinterDrivers } from "../../../wailsjs/go/deploy/Deploy"; 
 
 const useStyles = createStyles(({ css }) => ({
   configContainer: css`
@@ -227,7 +227,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     const handlePrinterModelChange = async (value: string) => {
       setPrinterModel(value);
       try {
-        const drivers = await GetPrinterDrivers(value);
+        const drivers = await GetSelectedLocalPrinterDrivers(value);
          // 将drivers数组中的每个对象的app_name提取出来作为选项
           const driverOpts = Array.isArray(drivers) 
           ? drivers.map((driver: any) => ({ 

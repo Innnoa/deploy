@@ -35,7 +35,7 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 	//get network printer drivers through api
 	log.Println("get network printer from list: ", selectedNetworkPrinters)
 
-	networkPrinterDriver := api.GetPrinterDrivers(selectedNetworkPrinters)
+	networkPrinterDriver := api.GetNetworkPrinterDrivers(selectedNetworkPrinters)
 	installedPackages = append(installedPackages, networkPrinterDriver...)
 
 	return installedPackages

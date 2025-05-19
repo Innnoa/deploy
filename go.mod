@@ -3,7 +3,6 @@ module recovery-unit-deploy
 go 1.23
 
 require (
-	github.com/fatih/structs v1.1.0
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/wailsapp/wails/v2 v2.10.1
 	golang.org/x/text v0.22.0
