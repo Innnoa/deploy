@@ -160,10 +160,14 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getPrinterModels = async () => {
     try {
       const models = await GetPrinterModels();
-      // 保存到上下文中
-       appContext.setPrinterModels(models as any[]);
+      if (models !== null) {
+          // 保存到上下文中
+         appContext.setPrinterModels(models as any[]);
       
-      getNetworkPinterList();
+         getNetworkPinterList();
+      }else{
+        reloadTip();
+      }
     } catch (error) {
       reloadTip();
     } 
@@ -173,15 +177,17 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getNetworkPinterList = async () => {
     try {
       const models = await GetNetworkPinterList("");
-      // 保存到上下文中
-      appContext.setNetworkPinterModels(models as any[]);
-
+      if (models !== null) {
+        // 保存到上下文中
+        appContext.setNetworkPinterModels(models as any[]);
+        setIsLoading(false);
+        setConnected(true);
+      }else{
+        reloadTip();
+      }
     } catch (error) {
       reloadTip();
-    } finally {
-      setIsLoading(false);
-      setConnected(true);
-    }
+    } 
   };
 
   // 处理按钮点击
