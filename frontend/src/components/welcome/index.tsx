@@ -170,7 +170,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     try {
       const models = await GetPrinterModels();
       // 保存到上下文中
-       appContext.setPrinterModels(models);
+       appContext.setPrinterModels(models as any[]);
       
       getNetworkPinterList();
     } catch (error) {
