@@ -143,8 +143,8 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
 
    // 将 printerModels 转换为 Select 组件需要的 options 格式
    const options = (printerModels || []).map(model => ({
-    value: model,
-    label: model
+    value: model.id,
+    label: model.brand
   }));
 
   const columns: ColumnsType<PrinterData> = [
