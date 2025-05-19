@@ -4,7 +4,8 @@ import { SearchOutlined ,ExclamationCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppContext } from '../../context/AppContext';
-import { GetSelectedLocalPrinterDrivers, SetSelectedPrinters } from "../../../wailsjs/go/deploy/Deploy"; 
+import { GetSelectedLocalPrinterDrivers, SetSelectedPrinters 
+  ,GetNetworkPinterList } from "../../../wailsjs/go/deploy/Deploy"; 
 
 const useStyles = createStyles(({ css }) => ({
   configContainer: css`
@@ -117,23 +118,14 @@ interface ConfigurationProps {
 const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}) => {
   const { styles } = useStyles();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<PrinterData[]>([]);
   const [printerModel, setPrinterModel] = useState<string>("");
   const [printerDriver, setPrinterDriver] = useState<string>("");
   const [driverOptions, setDriverOptions] = useState<{value: string, label: string}[]>([]);
 
   // 使用上下文获取数据
+  const appContext = useAppContext();
   const { printerModels,networkPinterModels, server, port } = useAppContext();
-
-  const printerData: PrinterData[] = [
-    { id: '1', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '2', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '3', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '4', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '5', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '6', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '7', pol: 'P123141', ip: '10.50.234.180' },
- 
-  ];
 
    // 将 printerModels 转换为 Select 组件需要的 options 格式
    const options = (printerModels || []).map(model => ({
@@ -154,13 +146,13 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     },
   ];
 
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    setSelectedRowKeys(newSelectedRowKeys);
-  };
 
   const rowSelection = {
     selectedRowKeys,
-    onChange: onSelectChange,
+    onChange: (newSelectedRowKeys: React.Key[], newSelectedRows: PrinterData[]) => {
+      setSelectedRowKeys(newSelectedRowKeys);
+      setSelectedRows(newSelectedRows); // 保存已选择的item详细信息
+    },
   };
   // 动态计算是否需要滚动
   const getTableScroll = () => {
@@ -176,11 +168,6 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     return contentHeight > maxHeight ? { y: 'calc(100vh - 510px)' } : {};
   };
   const handleNext = () => {
-    
-    console.log('打印机型号:', printerModel);
-    console.log('打印机驱动:', printerDriver);
-    console.log('选中的打印机:', selectedRowKeys);
-
     if (!printerModel && !printerDriver && selectedRowKeys.length === 0) {
       Modal.confirm({
         title: 'Information',
@@ -195,25 +182,29 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         onOk: () => {
           // 用户确认后的操作
           onSwitchToDeploy(); // 切换到Deploy组件
-          console.log('用户确认继续');
-          // 这里可以添加继续的逻辑
+          
         }
       });
     } else {
-      Modal.info({
+      Modal.confirm({
         title: '当前配置信息',
         icon: <ExclamationCircleFilled style={{ color: '#1890ff' }} />,
         content: (
           <div style={{ marginTop: 16 }}>
             <p>打印机型号: {printerModel || '未选择'}</p>
-            <p>打印机驱动: {printerDriver || '未选择'}</p>
-            <p>选中的打印机: {selectedRowKeys.length > 0 ? JSON.stringify(selectedRowKeys) : '未选择'}</p>
+            <p>打印机驱动: {printerDriver}</p>
+            <p>选中的打印机: {selectedRows.length > 0 ? JSON.stringify(selectedRows) : '未选择'}</p>
           </div>
         ),
         okText: '确定',
+        cancelText: '取消',
         centered: true,
         okButtonProps: {
           style: { backgroundColor: '#0052cc' }
+        },
+        onCancel: () => {
+          // 用户取消后的操作
+          console.log('Clicked cancel button');
         },
         onOk: () => {
           
@@ -229,8 +220,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     // 上传数据 跳转Deploy
     const setSelectedPrintersAction = async () => {
       try {
-        const selectedPrinters = selectedRowKeys.map(idx => networkPinterModels[Number(idx)]);
-        const models = await SetSelectedPrinters(printerDriver, selectedPrinters);
+        const models = await SetSelectedPrinters(printerDriver, selectedRows);
         onSwitchToDeploy(); // 切换到Deploy组件
       } catch (error) {
         
@@ -276,6 +266,16 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
       }
     };
 
+    // 搜索获取网络打印机
+    const getNetworkPinterList = async (searchValue: string) => {
+      try {
+        const models = await GetNetworkPinterList(searchValue);
+        appContext.setNetworkPinterModels(models as any[]);
+      } catch (error) {
+        // 错误处理
+      }
+    };
+
   return (
     <div className={styles.configContainer}>
       {/* 本地打印机配置 */}
@@ -294,7 +294,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
           <Select style={{ width: 350, textAlign: 'left'  }} placeholder="select" 
             options={driverOptions} dropdownStyle={{ textAlign: 'left' }}
             onChange={(value) => setPrinterDriver(value)}
-            value={printerDriver}
+            value={printerDriver === "" ? undefined : printerDriver}
             />
         </div>
       </div>
@@ -308,6 +308,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
           className={styles.searchInput}
           variant="borderless"
           allowClear
+          onChange={e => getNetworkPinterList(e.target.value)}
         />
 
         <Table 

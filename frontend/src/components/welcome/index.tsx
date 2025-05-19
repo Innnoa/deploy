@@ -160,10 +160,14 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getPrinterModels = async () => {
     try {
       const models = await GetPrinterModels();
-      // 保存到上下文中
-       appContext.setPrinterModels(models as any[]);
+      if (models !== null) {
+          // 保存到上下文中
+         appContext.setPrinterModels(models as any[]);
       
-      getNetworkPinterList();
+         getNetworkPinterList();
+      }else{
+        reloadTip();
+      }
     } catch (error) {
       reloadTip();
     } 
@@ -173,15 +177,17 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getNetworkPinterList = async () => {
     try {
       const models = await GetNetworkPinterList("");
-      // 保存到上下文中
-      appContext.setNetworkPinterModels(models as any[]);
-
+      if (models !== null) {
+        // 保存到上下文中
+        appContext.setNetworkPinterModels(models as any[]);
+        setIsLoading(false);
+        setConnected(true);
+      }else{
+        reloadTip();
+      }
     } catch (error) {
       reloadTip();
-    } finally {
-      setIsLoading(false);
-      setConnected(true);
-    }
+    } 
   };
 
   // 处理按钮点击
@@ -224,9 +230,8 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
           />
         </div>
       </div>
-      {/* <Text className={styles.connectingText}>Connecting to the Servers, please wait...</Text> */}
       <Text className={styles.connectingText}>
-        {isLoading ? "Connecting to the server, please wait..." : (connected ? `已连接，找到 ${packages.length} 个包` : "")}
+        {isLoading ? "Connecting to the server, please wait..." : (connected ? `Connected successfully` : "")}
       </Text>
     <Button 
         type="primary" 
