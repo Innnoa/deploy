@@ -4,7 +4,6 @@ import (
 	"net"
 	"os"
 	"recovery-unit-deploy/service/common"
-	"runtime"
 )
 
 func getComputerName() string {
@@ -13,13 +12,7 @@ func getComputerName() string {
 }
 
 func getSeedLabel() string {
-
-	var seed string
-	if runtime.GOOS == "windows" {
-		seed = common.GetSeed()
-	} else {
-		seed = os.Getenv("SEEDLONGLABEL")
-	}
+	seed := getSeed()
 	return seed
 }
 

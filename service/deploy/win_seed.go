@@ -1,7 +1,7 @@
 //go:build windows
 // +build windows
 
-package common
+package deploy
 
 import (
 	"log"
@@ -25,6 +25,6 @@ func getRegValue(key registry.Key, path string, name string) string {
 	return value
 }
 
-func GetSeed() string {
+func getSeed() string {
 	return getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Longlabel")
 }
