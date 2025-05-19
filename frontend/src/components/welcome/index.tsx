@@ -224,9 +224,8 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
           />
         </div>
       </div>
-      {/* <Text className={styles.connectingText}>Connecting to the Servers, please wait...</Text> */}
       <Text className={styles.connectingText}>
-        {isLoading ? "Connecting to the server, please wait..." : (connected ? `已连接，找到 ${packages.length} 个包` : "")}
+        {isLoading ? "Connecting to the server, please wait..." : (connected ? `Connected successfully` : "")}
       </Text>
     <Button 
         type="primary" 

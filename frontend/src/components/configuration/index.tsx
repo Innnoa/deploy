@@ -124,17 +124,6 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
   // 使用上下文获取数据
   const { printerModels,networkPinterModels, server, port } = useAppContext();
 
-  const printerData: PrinterData[] = [
-    { id: '1', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '2', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '3', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '4', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '5', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '6', pol: 'P123141', ip: '10.50.234.180' },
-    { id: '7', pol: 'P123141', ip: '10.50.234.180' },
- 
-  ];
-
    // 将 printerModels 转换为 Select 组件需要的 options 格式
    const options = (printerModels || []).map(model => ({
     value: model.id,
@@ -176,10 +165,6 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     return contentHeight > maxHeight ? { y: 'calc(100vh - 510px)' } : {};
   };
   const handleNext = () => {
-    
-    console.log('打印机型号:', printerModel);
-    console.log('打印机驱动:', printerDriver);
-    console.log('选中的打印机:', selectedRowKeys);
 
     if (!printerModel && !printerDriver && selectedRowKeys.length === 0) {
       Modal.confirm({
@@ -195,8 +180,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         onOk: () => {
           // 用户确认后的操作
           onSwitchToDeploy(); // 切换到Deploy组件
-          console.log('用户确认继续');
-          // 这里可以添加继续的逻辑
+          
         }
       });
     } else {
@@ -206,7 +190,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         content: (
           <div style={{ marginTop: 16 }}>
             <p>打印机型号: {printerModel || '未选择'}</p>
-            <p>打印机驱动: {printerDriver || '未选择'}</p>
+            <p>打印机驱动: {printerDriver}</p>
             <p>选中的打印机: {selectedRowKeys.length > 0 ? JSON.stringify(selectedRowKeys) : '未选择'}</p>
           </div>
         ),
