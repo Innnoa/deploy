@@ -1,13 +1,10 @@
 package deploy
 
 import (
-	"log"
 	"net"
 	"os"
 	"recovery-unit-deploy/service/common"
 	"runtime"
-
-	"golang.org/x/sys/windows/registry"
 )
 
 func getComputerName() string {
@@ -19,27 +16,11 @@ func getSeedLabel() string {
 
 	var seed string
 	if runtime.GOOS == "windows" {
-		seed = getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Longlabel")
+		seed = common.GetSeed()
 	} else {
 		seed = os.Getenv("SEEDLONGLABEL")
 	}
 	return seed
-}
-
-func getRegValue(key registry.Key, path string, name string) string {
-	key, err := registry.OpenKey(key, path, registry.QUERY_VALUE)
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-	defer key.Close()
-
-	value, _, err := key.GetStringValue(name)
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-	return value
 }
 
 func getIP() string {
