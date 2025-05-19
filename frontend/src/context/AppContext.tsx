@@ -1,8 +1,13 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 // 定义上下文数据类型
+
+interface PrinterModel {
+  id: string;
+  brand: string;
+}
 interface AppContextType {
-  printerModels: string[];
+  printerModels: PrinterModel[];
   server: string;
   port: string;
   computerInfo: {
@@ -11,7 +16,7 @@ interface AppContextType {
     oa: string;
     ip: string;
   };
-  setPrinterModels: (models: string[]) => void;
+  setPrinterModels: (models: PrinterModel[]) => void;
   setServer: (server: string) => void;
   setPort: (port: string) => void;
   setComputerInfo: (info: {name: string; seed: string; oa: string; ip: string}) => void;
@@ -22,7 +27,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // 创建上下文提供者组件
 export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
-  const [printerModels, setPrinterModels] = useState<string[]>([]);
+  const [printerModels, setPrinterModels] = useState<PrinterModel[]>([]);
   const [server, setServer] = useState<string>('');
   const [port, setPort] = useState<string>('');
   const [computerInfo, setComputerInfo] = useState({
