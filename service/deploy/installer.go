@@ -11,8 +11,8 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
-	"runtime"
 	"time"
 
 	"github.com/hirochachacha/go-smb2"
@@ -163,7 +163,30 @@ func CreateFileWithAutoDirs(filePath string) error {
 	return nil
 }
 
+func uploadInstallInfo() error {
+	var installInfo common.InstallInfo
+
+	pols := []string{common.CurrentComputerInfo.Name}
+
+	installInfo.Pols = pols
+
+	appids := make([]string, 0, len(installedPackages))
+	for _, p := range installedPackages {
+		appids = append(appids, p.ID)
+	}
+	installInfo.AppIds = appids
+
+	err := api.UploadInstallInfo(installInfo)
+	return err
+}
+
 func (p *Deploy) DoInstall() {
+	err := uploadInstallInfo()
+	if err != nil {
+		setAllStatusFail()
+		return
+	}
+
 	// 配置参数
 	server := "192.168.49.48"
 	username := "Administrator" //get from server
@@ -175,15 +198,16 @@ func (p *Deploy) DoInstall() {
 	defer cleanup()
 	if err != nil {
 		fmt.Println("连接失败:", err)
-		for _, value := range installedPackages {
-			value.Status = common.Failed.String()
-			value.Error = "Can't connect to OA Server."
-		}
+		setAllStatusFail()
 
 		return
 	}
 
 	for _, value := range installedPackages {
+		var app common.AppId
+		app.ID = value.ID
+		api.StartInstall(app)
+
 		remoteFile := value.WinFile
 		localPath := path.Join("C:/Temp/tool", value.WinFile)
 
@@ -192,6 +216,7 @@ func (p *Deploy) DoInstall() {
 			fmt.Println("操作失败:", err)
 			value.Status = common.Failed.String()
 			value.Error = "Copy file from OA Server failed."
+			api.InstallationFailed(app)
 			continue
 		} else {
 			fmt.Println("文件成功拷贝至:", localPath)
@@ -202,6 +227,9 @@ func (p *Deploy) DoInstall() {
 		batOutput, err := runScript(localPath)
 		if err != nil {
 			fmt.Println("错误:", err)
+			value.Status = common.Failed.String()
+			value.Error = err.Error()
+			api.InstallationFailed(app)
 			continue
 		}
 		fmt.Println("Bat输出:", batOutput)
@@ -211,42 +239,54 @@ func (p *Deploy) DoInstall() {
 		cmdOutput, err := runScript(localCmd)
 		if err != nil {
 			fmt.Println("JOB.CMD 执行错误:", err)
+			value.Status = common.Failed.String()
+			value.Error = err.Error()
+			api.InstallationFailed(app)
 		} else {
 			fmt.Println("Cmd输出:", cmdOutput)
 		}
 
-		batOutput, err = deleteByOSCommand("C:\\Temp\\tool")
+		err = deleteByOSCommand("C:\\Temp\\tool")
 		if err != nil {
 			fmt.Println("delete文件错误:", err)
+			value.Status = common.Failed.String()
+			value.Error = err.Error()
+			api.InstallationFailed(app)
 			continue
 		}
-		fmt.Println("delete Bat输出:", batOutput)
-	}
 
+		value.Status = common.Completed.String()
+
+		api.InstallationSuccess(app)
+	}
 }
 
-func deleteByOSCommand(dir string) (string, error) {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", "rmdir", "/s", "/q", dir)
-	} else {
-		cmd = exec.Command("rm", "-rf", dir)
+func setAllStatusFail() {
+	for _, value := range installedPackages {
+		value.Status = common.Failed.String()
+		value.Error = "Can't connect to OA Server."
+		var app common.AppId
+		app.ID = value.ID
+		api.InstallationFailed(app)
 	}
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+}
 
-	err := cmd.Run()
-	output := ConvertByte2String(stdout.Bytes(), GB18030)
-	errMsg := ConvertByte2String(stderr.Bytes(), GB18030)
+func deleteByOSCommand(dir string) error {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("%s失败，退出码: %d\n错误输出: %s", dir, exitErr.ExitCode(), errMsg)
-		}
-		return "", fmt.Errorf("启动%s失败: %v", dir, err)
+		return fmt.Errorf("读取目录失败: %w", err)
 	}
 
-	return output, err
+	// 遍历并删除每个子项
+	for _, entry := range entries {
+		fullPath := filepath.Join(dir, entry.Name())
+		// 递归删除子项（文件或目录）
+		if err := os.RemoveAll(fullPath); err != nil {
+			return fmt.Errorf("删除 %s 失败: %w", fullPath, err)
+		}
+	}
+
+	return nil
 }
 
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {

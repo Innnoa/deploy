@@ -51,3 +51,12 @@ func (s Status) String() string {
 		"Waiting", "Running", "Completed", "Failed",
 	}[s]
 }
+
+type AppId struct {
+	ID string `json:"appid"`
+}
+
+type InstallInfo struct {
+	Pols   []string `json:"pols"`
+	AppIds []string `json:"appids"`
+}

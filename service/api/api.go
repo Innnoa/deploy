@@ -94,6 +94,26 @@ type NetworkPrinterDriverResponse struct {
 	Data []common.PackageInfo `json:"data"`
 }
 
+type UploadInstallInfoRequest struct {
+	PublicRequest
+	Info common.InstallInfo `json:"dto"`
+}
+
+type UploadInstallInfoResponse struct {
+	PublicResponse
+	Data string `json:"data"`
+}
+
+type UpdateInstallStatusRequest struct {
+	PublicRequest
+	App common.AppId `json:"dto"`
+}
+
+type UpdateInstallStatusResponse struct {
+	PublicResponse
+	Data string `json:"data"`
+}
+
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
@@ -419,4 +439,157 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	}
 
 	return result.Data
+}
+
+func UploadInstallInfo(info common.InstallInfo) error {
+	log.Printf("upload install info.")
+
+	var request UploadInstallInfoRequest
+	request.Info = info
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", nil, m)
+
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return err
+	}
+
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return fmt.Errorf("业务错误: HTTP %d → %s", status, string(data))
+	}
+
+	var result UploadInstallInfoResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return err
+	}
+
+	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
+	return nil
+}
+
+func StartInstall(id common.AppId) {
+	log.Printf("start install.")
+
+	var request UpdateInstallStatusRequest
+	request.App = id
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", nil, m)
+
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return
+	}
+
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return
+	}
+
+	var result UpdateInstallStatusResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return
+	}
+
+	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
+}
+
+func InstallationSuccess(id common.AppId) {
+	log.Printf("install success.")
+
+	var request UpdateInstallStatusRequest
+	request.App = id
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", nil, m)
+
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return
+	}
+
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return
+	}
+
+	var result UpdateInstallStatusResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return
+	}
+
+	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
+}
+
+func InstallationFailed(id common.AppId) {
+	log.Printf("install success.")
+
+	var request UpdateInstallStatusRequest
+	request.App = id
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", nil, m)
+
+	if err != nil {
+		log.Printf("请求异常: %v", err)
+		return
+	}
+
+	if status != http.StatusOK {
+		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		return
+	}
+
+	var result UpdateInstallStatusResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Printf("JSON解析失败: %v", err)
+		return
+	}
+
+	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
 }
