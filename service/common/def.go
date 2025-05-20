@@ -21,6 +21,7 @@ type Printer struct {
 	ID    string `json:"id"`
 	PolNo string `json:"pol"`
 	IP    string `json:"ip"`
+	AppId string `json:"appid"`
 }
 
 type PackageInfo struct {
@@ -49,4 +50,13 @@ func (s Status) String() string {
 	return [...]string{
 		"Waiting", "Running", "Completed", "Failed",
 	}[s]
+}
+
+type AppId struct {
+	ID string `json:"appid"`
+}
+
+type InstallInfo struct {
+	Pols   []string `json:"pols"`
+	AppIds []string `json:"appids"`
 }

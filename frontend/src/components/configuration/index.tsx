@@ -109,6 +109,7 @@ interface PrinterData {
   id: string;
   pol: string;
   ip: string;
+  appid: string;
 }
 interface ConfigurationProps {
     onBack: () => void; // 添加返回按钮回调函数
