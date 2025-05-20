@@ -4,7 +4,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 	"reflect"
 	"sort"
@@ -137,10 +139,22 @@ func computeSignature(secret, stringToSign string) string {
 	return base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 }
 
-func generateSignature(params map[string]string) string {
+func generateSignature(method string, body interface{}, params map[string]string) string {
+	if body != nil {
+		// 序列化为JSON字节数组
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			log.Printf("json.Marshal: %v", err)
+			return ""
+		}
+		// 转换为字符串
+		jsonStr := string(jsonData)
+		params["body"] = jsonStr
+
+	}
 	canonicalQuery := canonicalizeParams(params)
 
-	stringToSign := buildStringToSign("GET", canonicalQuery)
+	stringToSign := buildStringToSign(method, canonicalQuery)
 
 	// 3. 计算签名
 	accessSecret := ACCESS_SECRET

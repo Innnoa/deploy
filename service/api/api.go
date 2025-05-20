@@ -94,19 +94,9 @@ type NetworkPrinterDriverResponse struct {
 	Data []common.PackageInfo `json:"data"`
 }
 
-type UploadInstallInfoRequest struct {
-	PublicRequest
-	Info common.InstallInfo `json:"dto"`
-}
-
 type UploadInstallInfoResponse struct {
 	PublicResponse
 	Data string `json:"data"`
-}
-
-type UpdateInstallStatusRequest struct {
-	PublicRequest
-	App common.AppId `json:"dto"`
 }
 
 type UpdateInstallStatusResponse struct {
@@ -211,7 +201,7 @@ func GetOAServer(ip string) string {
 	request.PublicReq = public
 
 	m := structToMap(request)
-	public.Signature = generateSignature(m)
+	public.Signature = generateSignature(http.MethodGet, nil, m)
 
 	m["signature"] = public.Signature
 
@@ -248,7 +238,7 @@ func GetPrinterModels() []common.PrinterModel {
 	public.Timestamp = getCurrentTimestamp()
 
 	m := structToMap(public)
-	public.Signature = generateSignature(m)
+	public.Signature = generateSignature(http.MethodGet, nil, m)
 
 	m["signature"] = public.Signature
 
@@ -289,7 +279,7 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	request.Signature = generateSignature(http.MethodGet, nil, m)
 
 	m["signature"] = request.Signature
 
@@ -329,7 +319,7 @@ func GetNetworkPinterList(keyword string) []common.Printer {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	request.Signature = generateSignature(http.MethodGet, nil, m)
 
 	m["signature"] = request.Signature
 
@@ -373,7 +363,7 @@ func GetAllPackages(pol string, seed string) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	request.Signature = generateSignature(http.MethodGet, nil, m)
 
 	m["signature"] = request.Signature
 
@@ -416,7 +406,7 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	request.Signature = generateSignature(http.MethodGet, nil, m)
 
 	m["signature"] = request.Signature
 
@@ -444,21 +434,18 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 func UploadInstallInfo(info common.InstallInfo) error {
 	log.Printf("upload install info.")
 
-	var request UploadInstallInfoRequest
-	request.Info = info
-
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
 	public.Timestamp = getCurrentTimestamp()
 
-	request.PublicRequest = public
+	m := structToMap(public)
 
-	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	public.Signature = generateSignature(http.MethodPost, info, m)
+	m["signature"] = public.Signature
 
-	m["signature"] = request.Signature
+	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", nil, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", info, m)
 
 	if err != nil {
 		log.Printf("请求异常: %v", err)
@@ -483,21 +470,18 @@ func UploadInstallInfo(info common.InstallInfo) error {
 func StartInstall(id common.AppId) {
 	log.Printf("start install.")
 
-	var request UpdateInstallStatusRequest
-	request.App = id
-
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
 	public.Timestamp = getCurrentTimestamp()
 
-	request.PublicRequest = public
+	m := structToMap(public)
 
-	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	public.Signature = generateSignature(http.MethodPost, id, m)
+	m["signature"] = public.Signature
 
-	m["signature"] = request.Signature
+	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", nil, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", id, m)
 
 	if err != nil {
 		log.Printf("请求异常: %v", err)
@@ -521,21 +505,18 @@ func StartInstall(id common.AppId) {
 func InstallationSuccess(id common.AppId) {
 	log.Printf("install success.")
 
-	var request UpdateInstallStatusRequest
-	request.App = id
-
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
 	public.Timestamp = getCurrentTimestamp()
 
-	request.PublicRequest = public
+	m := structToMap(public)
 
-	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	public.Signature = generateSignature(http.MethodPost, id, m)
+	m["signature"] = public.Signature
 
-	m["signature"] = request.Signature
+	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", nil, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", id, m)
 
 	if err != nil {
 		log.Printf("请求异常: %v", err)
@@ -559,21 +540,18 @@ func InstallationSuccess(id common.AppId) {
 func InstallationFailed(id common.AppId) {
 	log.Printf("install success.")
 
-	var request UpdateInstallStatusRequest
-	request.App = id
-
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
 	public.Timestamp = getCurrentTimestamp()
 
-	request.PublicRequest = public
+	m := structToMap(public)
 
-	m := structToMap(request)
-	request.Signature = generateSignature(m)
+	public.Signature = generateSignature(http.MethodPost, id, m)
+	m["signature"] = public.Signature
 
-	m["signature"] = request.Signature
+	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", nil, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", id, m)
 
 	if err != nil {
 		log.Printf("请求异常: %v", err)

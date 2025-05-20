@@ -208,6 +208,8 @@ func (p *Deploy) DoInstall() {
 		app.ID = value.ID
 		api.StartInstall(app)
 
+		value.Status = common.Running.String()
+
 		remoteFile := value.WinFile
 		localPath := path.Join("C:/Temp/tool", value.WinFile)
 
