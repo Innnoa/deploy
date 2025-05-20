@@ -193,7 +193,8 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
   const [current, setCurrent] = useState(1);
   const [allData, setAllData] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  // const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = React.useRef<number | null>(null);
 
   const getInstallPackages = async () => {
     try {
@@ -242,23 +243,22 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
       setIsRunning(true);
       
       doInstall();
-      
-      // 每隔一秒调用一次getInstallStatus
       if (!intervalRef.current) {
-        intervalRef.current = setInterval(() => {
+        intervalRef.current = window.setInterval(() => {
           getInstallStatus();
-        }, 1000);
-      }
+        }, 1000); 
+       }
     };
-
     // 组件卸载时清理定时器
     React.useEffect(() => {
       return () => {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
       };
     }, []);
+    
 
   // 处理分页数据
   // const dataSource = allData.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
@@ -297,7 +297,10 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
         },
         onOk: () => {
           // 用户确认后的操作
-          
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
           
         }
       });
