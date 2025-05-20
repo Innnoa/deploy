@@ -86,7 +86,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const { styles } = useStyles();
     const [packages, setPackages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [server, setServer] = useState<string>('192.168.14.107');
+    const [server, setServer] = useState<string>('192.168.14.159');
     const [port, setPort] = useState<string>('9900');
     const [connected, setConnected] = useState<boolean>(false);
 
