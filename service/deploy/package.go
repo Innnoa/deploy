@@ -6,7 +6,7 @@ import (
 )
 
 var localPrinterDriverList []common.PackageInfo
-var selectedLocalDriver common.PackageInfo
+var selectedLocalDriver *common.PackageInfo
 var selectedNetworkPrinters []common.Printer
 var installedPackages []common.PackageInfo
 
@@ -17,8 +17,8 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 	allPackages := api.GetAllPackages(common.CurrentComputerInfo.Name, common.CurrentComputerInfo.Seed)
 	installedPackages = append(installedPackages, allPackages...)
 
-	if selectedLocalDriver.ID != "" {
-		installedPackages = append(installedPackages, selectedLocalDriver)
+	if selectedLocalDriver != nil && selectedLocalDriver.ID != "" {
+		installedPackages = append(installedPackages, *selectedLocalDriver)
 	}
 
 	networkPrinterDriver := api.GetNetworkPrinterDrivers(selectedNetworkPrinters)

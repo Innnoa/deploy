@@ -23,9 +23,10 @@ func (p *Deploy) GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo 
 }
 
 func (p *Deploy) SetSelectedPrinters(driverId string, printers []common.Printer) bool {
+	selectedLocalDriver = nil
 	for _, value := range localPrinterDriverList {
 		if value.ID == driverId {
-			selectedLocalDriver = value
+			selectedLocalDriver = &value
 			break
 		}
 	}
