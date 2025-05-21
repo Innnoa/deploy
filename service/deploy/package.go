@@ -17,7 +17,9 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 	allPackages := api.GetAllPackages(common.CurrentComputerInfo.Name, common.CurrentComputerInfo.Seed)
 	installedPackages = append(installedPackages, allPackages...)
 
-	installedPackages = append(installedPackages, selectedLocalDriver)
+	if selectedLocalDriver.ID != "" {
+		installedPackages = append(installedPackages, selectedLocalDriver)
+	}
 
 	networkPrinterDriver := api.GetNetworkPrinterDrivers(selectedNetworkPrinters)
 	installedPackages = append(installedPackages, networkPrinterDriver...)

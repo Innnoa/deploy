@@ -538,7 +538,7 @@ func InstallationSuccess(id common.AppId) {
 }
 
 func InstallationFailed(id common.AppId) {
-	log.Printf("install success.")
+	log.Printf("install failed.")
 
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
