@@ -3,6 +3,9 @@ package common
 type OAServer struct {
 	ID         string `json:"id"`
 	ServerName string `json:"serverName"`
+	IP         string `json:"ip"`
+	UserName   string `json:"username"`
+	Password   string `json:"password"`
 }
 
 type PrinterModel struct {

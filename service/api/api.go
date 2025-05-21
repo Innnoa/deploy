@@ -223,6 +223,7 @@ func GetOAServer(ip string) string {
 		return ""
 	}
 
+	common.CurrentOA = result.Data
 	common.CurrentComputerInfo.OA = result.Data.ServerName
 	// common.CurrentOA = "192.168.49.48"
 	return common.CurrentComputerInfo.OA

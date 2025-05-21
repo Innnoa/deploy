@@ -188,7 +188,12 @@ func (p *Deploy) DoInstall() {
 	}
 
 	// 配置参数
-	server := "192.168.49.48"
+	server := ""
+	if common.CurrentOA.IP != "" {
+		server = common.CurrentOA.IP
+	} else {
+		server = common.CurrentOA.ServerName
+	}
 	username := "Administrator" //get from server
 	password := "Deepit123"     //get from server
 	shareName := "MasterOAServer"
@@ -210,7 +215,7 @@ func (p *Deploy) DoInstall() {
 
 		installedPackages[i].Status = common.Running.String()
 
-		remoteFile := installedPackages[i].WinFile
+		remoteFile := path.Join("jobs", installedPackages[i].WinFile)
 		localPath := path.Join("C:/Temp/tool", installedPackages[i].WinFile)
 
 		// 执行拷贝
@@ -224,7 +229,7 @@ func (p *Deploy) DoInstall() {
 			fmt.Println("文件成功拷贝至:", localPath)
 		}
 
-		os.Setenv("SRC", "\\\\"+common.CurrentComputerInfo.OA+"\\"+shareName+"\\"+installedPackages[i].Path)
+		os.Setenv("SRC", "\\\\"+server+"\\"+shareName+"\\"+installedPackages[i].Path)
 		// 执行第一个bat文件
 		batOutput, err := runScript(localPath)
 		if err != nil {
