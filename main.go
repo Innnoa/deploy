@@ -18,7 +18,7 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:         "recovery-unit-deploy",
+		Title:         "Deploy",
 		Width:         1024,
 		Height:        768,
 		DisableResize: true, //禁用调整窗口尺寸
