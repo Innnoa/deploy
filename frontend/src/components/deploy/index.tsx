@@ -122,6 +122,18 @@ const useStyles = createStyles(({ css }) => ({
     &:hover {
     background-color: #013FBF !important;
   }
+    &:disabled,
+    &[disabled] {
+      background-color: #CFCFCF !important;
+      color: #fff !important;
+      cursor: not-allowed !important;
+    }
+    &:disabled:hover,
+    &[disabled]:hover {
+      background-color: #CFCFCF !important;
+      color: #fff !important;
+      cursor: not-allowed !important;
+    }
   `
 }));
 
@@ -151,23 +163,6 @@ const columns = [
     }
   }
 ];
-
-  // const allData = [
-  //   { id: 1, appname: 'Autologon_ITLU | Autologon For Training School', status: 'Completed' },
-  //   { id: 2, appname: 'Local Printer | Kyocera ECOSYS P3260dn...', status: 'Completed' },
-  //   { id: 3, appname: 'Printer Q | IP | 10.50.243.201', status: 'Failed' },
-  //   { id: 4, appname: 'Printer Q | Pol NO | P43688', status: 'Running' },
-  //   { id: 5, appname: 'Reborn | DeepFreeze Reborn Software', status: 'Waiting' },
-  //   { id: 6, appname: 'Reborn | DeepFreeze Reborn Software', status: 'Waiting' },
-  //   { id: 7, appname: 'Deploy | PC Deployment', status: 'Waiting' },
-  //   // { id: 8, appname: 'Deploy | PC Deployment', status: 'Waiting' },
-  //   // { id: 9, appname: 'Deploy | PC Deployment', status: 'Waiting' },
-  //   // { id: 10, appname: 'Deploy | PC Deployment111', status: 'Waiting' },
-  //   // ...更多数据
-  // ];
-
-  const PAGE_SIZE = 7;
-
     
   interface DeployProps {
     onDeployBack: () => void;
@@ -190,10 +185,8 @@ const columns = [
 
 const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
   const { styles } = useStyles();
-  const [current, setCurrent] = useState(1);
   const [allData, setAllData] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  // const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
   const intervalRef = React.useRef<number | null>(null);
 
   const getInstallPackages = async () => {
@@ -260,9 +253,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
     }, []);
     
 
-  // 处理分页数据
-  // const dataSource = allData.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
-  //   .map(item => ({ ...item, styles }));
+  // 处理数据
   const dataSource = allData.map(item => ({ ...item, styles }));
 
       // 动态计算是否需要滚动
@@ -280,7 +271,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
   };
 
    // 计算 percent
-   const completedCount = dataSource.filter(item => item.status === 'Completed').length;
+   const completedCount = dataSource.filter(item => item.status === 'Completed' || item.status === 'Failed').length;
    const percent = dataSource.length === 0 ? 0 : Math.round((completedCount / dataSource.length) * 100);
   // 监听 percent 达到 100 弹窗
   useEffect(() => {
@@ -296,11 +287,6 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
           style: { backgroundColor: '#0052cc' }
         },
         onOk: () => {
-          // 用户确认后的操作
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
           
         }
       });
@@ -347,17 +333,6 @@ return (
           rowKey="id"
           pagination={false}
           scroll={getTableScroll() || undefined}
-          // scroll={{ y: 'calc(100vh - 340px)' }} /* 设置表格内部滚动 */
-          // 根据数据源的总数来决定是否显示分页
-          // pagination={{
-          //   current,
-          //   pageSize: PAGE_SIZE,
-          //   total: allData.length,
-          //   showTotal: (total: number) => `Total ${total} items`,
-          //   onChange: setCurrent,
-          //   showSizeChanger: false,
-          //   hideOnSinglePage: true,
-          // } }
         />
       </div>
 
@@ -371,6 +346,7 @@ return (
           <Button type="primary" 
             className={styles.startButton}
             loading={isRunning}
+            disabled={isRunning || dataSource.length === 0}
             onClick={handleRun}>Run</Button>
         </div>
       </div>
