@@ -203,34 +203,34 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
-	for _, value := range installedPackages {
+	for i := range installedPackages {
 		var app common.AppId
-		app.ID = value.ID
+		app.ID = installedPackages[i].ID
 		api.StartInstall(app)
 
-		value.Status = common.Running.String()
+		installedPackages[i].Status = common.Running.String()
 
-		remoteFile := value.WinFile
-		localPath := path.Join("C:/Temp/tool", value.WinFile)
+		remoteFile := installedPackages[i].WinFile
+		localPath := path.Join("C:/Temp/tool", installedPackages[i].WinFile)
 
 		// 执行拷贝
 		if err := copyFromSMB(share, remoteFile, localPath); err != nil {
 			fmt.Println("操作失败:", err)
-			value.Status = common.Failed.String()
-			value.Error = "Copy file from OA Server failed."
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = "Copy file from OA Server failed."
 			api.InstallationFailed(app)
 			continue
 		} else {
 			fmt.Println("文件成功拷贝至:", localPath)
 		}
 
-		os.Setenv("SRC", "\\\\"+common.CurrentComputerInfo.OA+"\\"+shareName+"\\"+value.Path)
+		os.Setenv("SRC", "\\\\"+common.CurrentComputerInfo.OA+"\\"+shareName+"\\"+installedPackages[i].Path)
 		// 执行第一个bat文件
 		batOutput, err := runScript(localPath)
 		if err != nil {
 			fmt.Println("错误:", err)
-			value.Status = common.Failed.String()
-			value.Error = err.Error()
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
 			continue
 		}
@@ -241,8 +241,8 @@ func (p *Deploy) DoInstall() {
 		cmdOutput, err := runScript(localCmd)
 		if err != nil {
 			fmt.Println("JOB.CMD 执行错误:", err)
-			value.Status = common.Failed.String()
-			value.Error = err.Error()
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
 		} else {
 			fmt.Println("Cmd输出:", cmdOutput)
@@ -251,13 +251,13 @@ func (p *Deploy) DoInstall() {
 		err = deleteByOSCommand("C:\\Temp\\tool")
 		if err != nil {
 			fmt.Println("delete文件错误:", err)
-			value.Status = common.Failed.String()
-			value.Error = err.Error()
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
 			continue
 		}
 
-		value.Status = common.Completed.String()
+		installedPackages[i].Status = common.Completed.String()
 
 		api.InstallationSuccess(app)
 	}
@@ -292,5 +292,6 @@ func deleteByOSCommand(dir string) error {
 }
 
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
+	fmt.Printf("GetInstallStatus")
 	return installedPackages
 }
