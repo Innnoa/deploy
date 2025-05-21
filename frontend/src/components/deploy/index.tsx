@@ -1,6 +1,6 @@
 import React, { useState ,useEffect} from 'react';
-import { Table, Button, Progress, Typography, Modal } from 'antd';
-import { ExclamationCircleFilled} from '@ant-design/icons';
+import { Table, Button, Progress, Typography, Modal ,Tooltip} from 'antd';
+import { ExclamationCircleFilled,CheckCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
 import {GetInstallPackages,DoInstall,GetInstallStatus} from "../../../wailsjs/go/deploy/Deploy";
 
@@ -75,7 +75,7 @@ const useStyles = createStyles(({ css }) => ({
   statusRunning: css`
     color:#2055bf;
     background: #e6f4ff;
-    border: 1px solid#2758ba;
+    border: 1px solid#CCCCCC;
     border-radius: 4px;
     padding: 2px 12px;
     display: inline-block;
@@ -143,6 +143,11 @@ const columns = [
     dataIndex: 'appname',
     key: 'appname',
     ellipsis: true,
+    render: (appname: string, record: any) => (
+      <Tooltip title={appname} >
+        <span>{appname}</span>
+      </Tooltip>
+    ),
   },
   {
     title: 'Status',
@@ -154,7 +159,11 @@ const columns = [
         return <span className={record.styles.statusCompleted}>Completed</span>;
       }
       if (status === 'Failed') {
-        return <span className={record.styles.statusFailed}>Failed</span>;
+        return (
+          <Tooltip title={record.error || '未知错误'}>
+            <span className={record.styles.statusFailed}>Failed</span>
+          </Tooltip>
+        );
       }
       if (status === 'Running') {
         return <span className={record.styles.statusRunning}>Running</span>;
@@ -188,6 +197,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
   const [allData, setAllData] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = React.useRef<number | null>(null);
+  const [isDeployFinished, setIsDeployFinished] = useState(false);
 
   const getInstallPackages = async () => {
     try {
@@ -276,18 +286,18 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
   // 监听 percent 达到 100 弹窗
   useEffect(() => {
     if (percent === 100 && isRunning) {
-      
+      setIsDeployFinished(true); // 部署完成
       Modal.confirm({
-        title: 'Information',
-        icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
-        content: 'Deploy complete!',
-        okText: 'Confirm',
+        title: 'Deploy complete!',
+        icon: <CheckCircleFilled style={{ color: '#04B700' }} />,
+        content: 'Exit the application?',
+        okText: 'Exit',
         centered: true,
         okButtonProps: {
           style: { backgroundColor: '#0052cc' }
         },
         onOk: () => {
-          
+          handleCancel();
         }
       });
 
@@ -307,7 +317,8 @@ return (
       <div className={styles.progressBar}>
         <Progress 
             percent={percent}
-            showInfo={false} status="active" 
+            showInfo={false} 
+            status={percent === 100 ? "success" : "success"}
             strokeColor={{
              '0%': '#CFCFCF',
              '50%': '#2055bf',
@@ -338,15 +349,20 @@ return (
 
       {/* 底部按钮区 */}
       <div className={styles.footer}>
-        <span className={styles.footerText}>Click Cancel to stop deploy.</span>
+        <span className={styles.footerText}>
+              {isDeployFinished
+          ? 'Click Close to exit the application.'
+          : 'Click Cancel to stop deploy.'}
+        </span>
         <div className={styles.buttonGroup}>
           <Button onClick={onDeployBack}
-            disabled={isRunning}>Back</Button>
-          <Button danger onClick={handleCancel}>Cancel</Button>
+            disabled={isRunning || isDeployFinished}>Back</Button>
+          <Button danger onClick={handleCancel}>
+            {isDeployFinished ? 'Close' : 'Cancel'}</Button>
           <Button type="primary" 
             className={styles.startButton}
             loading={isRunning}
-            disabled={isRunning || dataSource.length === 0}
+            disabled={isRunning || dataSource.length === 0  || isDeployFinished}
             onClick={handleRun}>Run</Button>
         </div>
       </div>
