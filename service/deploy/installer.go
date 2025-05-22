@@ -180,11 +180,10 @@ func uploadInstallInfo() error {
 	return err
 }
 
-func (p *Deploy) DoInstall() (string, error) {
+func (p *Deploy) DoInstall() {
 	err := uploadInstallInfo()
 	if err != nil {
-		// setAllStatusFail()
-		return "Can't start installation.", err
+		setAllStatusFail()
 	}
 
 	// 配置参数
@@ -203,9 +202,7 @@ func (p *Deploy) DoInstall() (string, error) {
 	defer cleanup()
 	if err != nil {
 		fmt.Println("连接失败:", err)
-		// setAllStatusFail()
-
-		return "Can't connect to OA Server.", err
+		setAllStatusFail()
 	}
 
 	for i := range installedPackages {
@@ -253,7 +250,7 @@ func (p *Deploy) DoInstall() (string, error) {
 			fmt.Println("Cmd输出:", cmdOutput)
 		}
 
-		err = deleteByOSCommand("C:\\Temp\\tool")
+		err = deleteTempFiles("C:\\Temp\\tool")
 		if err != nil {
 			fmt.Println("delete文件错误:", err)
 			installedPackages[i].Status = common.Failed.String()
@@ -266,21 +263,19 @@ func (p *Deploy) DoInstall() (string, error) {
 
 		api.InstallationSuccess(app)
 	}
-
-	return "", nil
 }
 
-// func setAllStatusFail() {
-// 	for i := range installedPackages {
-// 		installedPackages[i].Status = common.Failed.String()
-// 		installedPackages[i].Error = "Can't connect to OA Server."
-// 		var app common.AppId
-// 		app.ID = installedPackages[i].ID
-// 		api.InstallationFailed(app)
-// 	}
-// }
+func setAllStatusFail() {
+	for i := range installedPackages {
+		installedPackages[i].Status = common.Failed.String()
+		installedPackages[i].Error = "Can't connect to OA Server."
+		var app common.AppId
+		app.ID = installedPackages[i].ID
+		api.InstallationFailed(app)
+	}
+}
 
-func deleteByOSCommand(dir string) error {
+func deleteTempFiles(dir string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("读取目录失败: %w", err)
@@ -291,7 +286,7 @@ func deleteByOSCommand(dir string) error {
 		fullPath := filepath.Join(dir, entry.Name())
 		// 递归删除子项（文件或目录）
 		if err := os.RemoveAll(fullPath); err != nil {
-			return fmt.Errorf("删除 %s 失败: %w", fullPath, err)
+			fmt.Printf("删除 %s 失败: %v", fullPath, err)
 		}
 	}
 
