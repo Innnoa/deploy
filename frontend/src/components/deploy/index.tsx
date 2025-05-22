@@ -186,6 +186,12 @@ const columns = [
       okText: 'Exit',
       cancelText: 'Cancel',
       centered: true,
+      okButtonProps: {
+        style: { backgroundColor: '#0052cc',width: '90px' }
+      },
+      cancelButtonProps: {
+        style: { width: '90px' }
+      },
       onOk: () => {
         (window as any).runtime?.Quit();
       }
@@ -330,7 +336,10 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
         okText: 'Exit',
         centered: true,
         okButtonProps: {
-          style: { backgroundColor: '#0052cc' }
+          style: { backgroundColor: '#0052cc',width: '90px' }
+        },
+        cancelButtonProps: {
+          style: { width: '90px' }
         },
         onOk: () => {
           handleCancel();

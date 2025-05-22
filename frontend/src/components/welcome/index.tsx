@@ -103,7 +103,10 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         okText: 'Confirm',
         centered: true,
         okButtonProps: {
-          style: { backgroundColor: '#0052cc' }
+          style: { backgroundColor: '#0052cc',width: '90px' }
+        },
+        cancelButtonProps: {
+          style: { width: '90px' }
         }
       })
     }
@@ -118,7 +121,10 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         okText: 'Confirm',
         centered: true,
         okButtonProps: {
-          style: { backgroundColor: '#0052cc' }
+          style: { backgroundColor: '#0052cc',width: '90px' }
+        },
+        cancelButtonProps: {
+          style: { width: '90px' }
         }
       });
       return;
