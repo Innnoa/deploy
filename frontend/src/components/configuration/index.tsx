@@ -80,29 +80,23 @@ const useStyles = createStyles(({ css }) => ({
     height: 60px; /* 添加固定高度以便计算间距 */
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   `,
-  footerText: css`
-    color: #777;
-    // margin-left: 22px;
-    font-size: 15px;
-    margin-left: auto;
-    margin-right: 16px;
-    text-align: right;
-  `,
-  footerLink: css`
-    color: #013FBF;
-    // cursor: pointer;
-    font-size: 15px;
-  `,
   buttonGroup: css`
+    margin-left: auto;
     display: flex;
     gap: 12px;
   `,
   startButton: css`
+    width: 90px;
     background-color: #0052cc;
     &:hover {
     background-color: #013FBF !important;
   }
-  `
+  `,
+  backButton: css`
+    width: 90px;
+  }
+  `,
+  
 }));
 
 interface PrinterData {
@@ -301,15 +295,13 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
 
       {/* 底部按钮 */}
       <div className={styles.footer}>
-        <div className={styles.footerText}>
-          Additional Printer Driver Installation.
-          <span className={styles.footerLink}>Click NEXT to Next step</span>
-        </div>
         <div className={styles.buttonGroup}>
-          <Button onClick={onBack}>Back</Button>
-          <Button danger onClick={handleCancel}>Cancel</Button>
+          <Button onClick={onBack}
+                  className={styles.backButton}>Back</Button>
+          <Button danger onClick={handleCancel}
+                  className={styles.backButton}>Cancel</Button>
           <Button type="primary" onClick={handleNext}
-                  className={styles.startButton}>NEXT</Button>
+                  className={styles.startButton}>Next</Button>
         </div>
       </div>
     </div>

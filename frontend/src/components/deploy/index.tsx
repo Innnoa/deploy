@@ -106,18 +106,14 @@ const useStyles = createStyles(({ css }) => ({
     height: 60px; /* 添加固定高度以便计算间距 */
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   `,
-  footerText: css`
-    color: #013FBF;
-    font-size: 15px;
-    margin-left: auto;
-    margin-right: 16px;
-    text-align: right;
-  `,
+  
   buttonGroup: css`
+    margin-left: auto;
     display: flex;
-    gap: 16px;
+    gap: 12px;
   `,
   startButton: css`
+    width: 90px;
     background-color: #0052cc;
     &:hover {
     background-color: #013FBF !important;
@@ -134,7 +130,11 @@ const useStyles = createStyles(({ css }) => ({
       color: #fff !important;
       cursor: not-allowed !important;
     }
-  `
+  `,
+  backButton: css`
+    width: 90px;
+  }
+  `,
 }));
 
 const columns = [
@@ -232,30 +232,39 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
   const doInstall = async () => {
     try {
       const status = await DoInstall();
-      if (typeof status === 'string' && status.length > 0) {
-        Modal.error({
-          title: 'Error',
-          content: status,
-          centered: true,
-          okText: 'Confirm',
-          okButtonProps: {
-            style: { backgroundColor: '#0052cc' }
-          },
-        });
+
+      // 暂不处理错误返回值 --------------
+      if (!intervalRef.current) {
+        intervalRef.current = window.setInterval(() => {
+          getInstallStatus();
+        }, 1000); 
+       }
+
+       // 处理错误返回值 弹窗提示 -------------
+      // if (typeof status === 'string' && status.length > 0) {
+      //   Modal.error({
+      //     title: 'Error',
+      //     content: status,
+      //     centered: true,
+      //     okText: 'Confirm',
+      //     okButtonProps: {
+      //       style: { backgroundColor: '#0052cc' }
+      //     },
+      //   });
         
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        setIsRunning(false);
-        setIsDeployFinished(false);
-      }else{
-        if (!intervalRef.current) {
-          intervalRef.current = window.setInterval(() => {
-            getInstallStatus();
-          }, 1000); 
-         }
-      }
+      //   if (intervalRef.current) {
+      //     clearInterval(intervalRef.current);
+      //     intervalRef.current = null;
+      //   }
+      //   setIsRunning(false);
+      //   setIsDeployFinished(false);
+      // }else{
+      //   if (!intervalRef.current) {
+      //     intervalRef.current = window.setInterval(() => {
+      //       getInstallStatus();
+      //     }, 1000); 
+      //    }
+      // }
       
     } catch (error) {
       if (intervalRef.current) {
@@ -375,15 +384,13 @@ return (
 
       {/* 底部按钮区 */}
       <div className={styles.footer}>
-        <span className={styles.footerText}>
-              {isDeployFinished
-          ? 'Click Close to exit the application.'
-          : 'Click Cancel to stop deploy.'}
-        </span>
+
         <div className={styles.buttonGroup}>
           <Button onClick={onDeployBack}
-            disabled={isRunning || isDeployFinished}>Back</Button>
-          <Button danger onClick={handleCancel}>
+            disabled={isRunning || isDeployFinished}
+            className={styles.backButton}>Back</Button>
+          <Button danger onClick={handleCancel}
+            className={styles.backButton}>
             {isDeployFinished ? 'Close' : 'Cancel'}</Button>
           <Button type="primary" 
             className={styles.startButton}

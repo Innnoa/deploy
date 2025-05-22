@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
@@ -85,8 +85,8 @@ interface WelcomeProps {
 const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const { styles } = useStyles();
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [server, setServer] = useState<string>('192.168.14.159');
-    const [port, setPort] = useState<string>('9900');
+    const [server, setServer] = useState<string>('');
+    const [port, setPort] = useState<string>('');
     const [connected, setConnected] = useState<boolean>(false);
 
     // 使用上下文
