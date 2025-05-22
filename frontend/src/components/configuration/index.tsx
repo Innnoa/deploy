@@ -182,40 +182,12 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         },
         onOk: () => {
           // 用户确认后的操作
-          setSelectedPrintersAction(); // 切换到Deploy组件
+          setSelectedPrintersAction(); 
           
         }
       });
     } else {
       setSelectedPrintersAction(); 
-      // Modal.confirm({
-      //   title: '当前配置信息',
-      //   icon: <ExclamationCircleFilled style={{ color: '#1890ff' }} />,
-      //   content: (
-      //     <div style={{ marginTop: 16 }}>
-      //       <p>打印机型号: {printerModel || '未选择'}</p>
-      //       <p>打印机驱动: {printerDriver}</p>
-      //       <p>选中的打印机: {selectedRows.length > 0 ? JSON.stringify(selectedRows) : '未选择'}</p>
-      //     </div>
-      //   ),
-      //   okText: '确定',
-      //   cancelText: '取消',
-      //   centered: true,
-      //   okButtonProps: {
-      //     style: { backgroundColor: '#0052cc' }
-      //   },
-      //   onCancel: () => {
-      //     // 用户取消后的操作
-      //     console.log('Clicked cancel button');
-      //   },
-      //   onOk: () => {
-          
-      //       setSelectedPrintersAction(); // 切换到Deploy组件
-          
-      //   }
-      // });
-
-      
     }
   };
 

@@ -160,7 +160,7 @@ const columns = [
       }
       if (status === 'Failed') {
         return (
-          <Tooltip title={record.error || '未知错误'}>
+          <Tooltip title={record.error || 'Unknown error'}>
             <span className={record.styles.statusFailed}>Failed</span>
           </Tooltip>
         );
@@ -213,6 +213,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
     } 
   };
 
+  //获取安装状态
   const getInstallStatus = async () => {
     try {
       const models = await GetInstallStatus();
@@ -227,12 +228,42 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
     } 
   };
 
+  //安装
   const doInstall = async () => {
     try {
-      const models = await DoInstall();
+      const status = await DoInstall();
+      if (typeof status === 'string' && status.length > 0) {
+        Modal.error({
+          title: 'Error',
+          content: status,
+          centered: true,
+          okText: 'Confirm',
+          okButtonProps: {
+            style: { backgroundColor: '#0052cc' }
+          },
+        });
+        
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setIsRunning(false);
+        setIsDeployFinished(false);
+      }else{
+        if (!intervalRef.current) {
+          intervalRef.current = window.setInterval(() => {
+            getInstallStatus();
+          }, 1000); 
+         }
+      }
       
     } catch (error) {
-      
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      setIsRunning(false);
+      setIsDeployFinished(false);
     } 
   };
 
@@ -241,26 +272,22 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
     getInstallPackages();
   }, []);
 
-    // Run按钮点击事件
-    const handleRun = () => {
-      setIsRunning(true);
-      
-      doInstall();
-      if (!intervalRef.current) {
-        intervalRef.current = window.setInterval(() => {
-          getInstallStatus();
-        }, 1000); 
-       }
+  // Run按钮点击事件
+  const handleRun = () => {
+    setIsRunning(true);
+
+    doInstall();
+    
+  };
+  // 组件卸载时清理定时器
+  React.useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-    // 组件卸载时清理定时器
-    React.useEffect(() => {
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      };
-    }, []);
+  }, []);
     
 
   // 处理数据
@@ -318,7 +345,7 @@ return (
         <Progress 
             percent={percent}
             showInfo={false} 
-            status={percent === 100 ? "success" : "success"}
+            status={percent === 100 ? "success" : "active"}
             strokeColor={{
              '0%': '#CFCFCF',
              '50%': '#2055bf',
@@ -336,7 +363,6 @@ return (
 
       {/* 列表卡片 */}
       <div className={styles.tableCard}>
-        {/* <div className={styles.tableTitle}></div> */}
         <Table
           className={styles.table}
           columns={columns}
