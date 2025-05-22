@@ -180,11 +180,11 @@ func uploadInstallInfo() error {
 	return err
 }
 
-func (p *Deploy) DoInstall() {
+func (p *Deploy) DoInstall() (string, error) {
 	err := uploadInstallInfo()
 	if err != nil {
-		setAllStatusFail()
-		return
+		// setAllStatusFail()
+		return "Can't start installation.", err
 	}
 
 	// 配置参数
@@ -203,9 +203,9 @@ func (p *Deploy) DoInstall() {
 	defer cleanup()
 	if err != nil {
 		fmt.Println("连接失败:", err)
-		setAllStatusFail()
+		// setAllStatusFail()
 
-		return
+		return "Can't connect to OA Server.", err
 	}
 
 	for i := range installedPackages {
@@ -266,17 +266,19 @@ func (p *Deploy) DoInstall() {
 
 		api.InstallationSuccess(app)
 	}
+
+	return "", nil
 }
 
-func setAllStatusFail() {
-	for _, value := range installedPackages {
-		value.Status = common.Failed.String()
-		value.Error = "Can't connect to OA Server."
-		var app common.AppId
-		app.ID = value.ID
-		api.InstallationFailed(app)
-	}
-}
+// func setAllStatusFail() {
+// 	for i := range installedPackages {
+// 		installedPackages[i].Status = common.Failed.String()
+// 		installedPackages[i].Error = "Can't connect to OA Server."
+// 		var app common.AppId
+// 		app.ID = installedPackages[i].ID
+// 		api.InstallationFailed(app)
+// 	}
+// }
 
 func deleteByOSCommand(dir string) error {
 	entries, err := os.ReadDir(dir)
