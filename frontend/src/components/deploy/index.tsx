@@ -239,12 +239,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
     try {
       const status = await DoInstall();
 
-      // 暂不处理错误返回值 --------------
-      if (!intervalRef.current) {
-        intervalRef.current = window.setInterval(() => {
-          getInstallStatus();
-        }, 1000); 
-       }
+      
 
        // 处理错误返回值 弹窗提示 -------------
       // if (typeof status === 'string' && status.length > 0) {
@@ -273,12 +268,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
       // }
       
     } catch (error) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      setIsRunning(false);
-      setIsDeployFinished(false);
+      
     } 
   };
 
@@ -292,7 +282,12 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
     setIsRunning(true);
 
     doInstall();
-    
+    // 暂不处理错误返回值 --------------
+    if (!intervalRef.current) {
+      intervalRef.current = window.setInterval(() => {
+        getInstallStatus();
+      }, 1000); 
+     }
   };
   // 组件卸载时清理定时器
   React.useEffect(() => {
