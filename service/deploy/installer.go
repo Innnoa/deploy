@@ -41,6 +41,7 @@ func runScript(scriptPath string) (string, error) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "cmd", "/C", scriptPath)
+	setHideWindow(cmd)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
