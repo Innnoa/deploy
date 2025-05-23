@@ -1,0 +1,18 @@
+stages:
+  - build
+  - upload
+
+build-job:
+  stage: build
+  script:
+    - wails build -clean    # 使用 Wails 构建应用
+  artifacts:
+    paths:
+      - build/bin/          # 上传构建后的文件（路径根据 Wails 实际输出调整）
+    expire_in: 1 year       # 产物保留时间
+
+upload-package:
+  stage: upload
+  script:
+    # 使用 GitLab API 上传到 Generic Package Registry（需要 API 令牌）
+    - curl --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" --upload-file build/bin/Deploy.exe "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/Deploy/0.8.0.2505230/Deploy.exe"
