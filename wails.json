@@ -1,6 +1,12 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "recovery-unit-deploy",
+  "name": "Deployment tool",           
+  "info": {     
+    "productVersion": "0.8.0.2505230",       
+    "fileVersion": "0.8.0.1",           
+    "copyright": "Copyright © 2025",
+    "productName": "Deploy"
+  },
   "assetdir": "frontend/dist", 
   "outputfilename": "Deploy",
   "frontend:install": "npm install",
