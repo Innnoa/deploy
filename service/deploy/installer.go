@@ -41,6 +41,7 @@ func runScript(scriptPath string) (string, error) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "cmd", "/C", scriptPath)
+	setHideWindow(cmd)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -203,7 +204,19 @@ func (p *Deploy) DoInstall() {
 	if err != nil {
 		fmt.Println("连接失败:", err)
 		setAllStatusFail()
+		return
 	}
+
+	cmd := exec.Command("net", "use", "\\\\"+server+"\\"+shareName, password, "/user:"+username)
+	// 执行命令并捕获输出
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("连接失败: %v\n输出:\n%s", err, ConvertByte2String(output, GB18030))
+		setAllStatusFail()
+		return
+	}
+
+	fmt.Printf("连接成功！输出:\n%s", ConvertByte2String(output, GB18030))
 
 	for i := range installedPackages {
 		var app common.AppId
@@ -227,6 +240,7 @@ func (p *Deploy) DoInstall() {
 		}
 
 		os.Setenv("SRC", "\\\\"+server+"\\"+shareName+"\\"+installedPackages[i].Path)
+
 		// 执行第一个bat文件
 		batOutput, err := runScript(localPath)
 		if err != nil {
@@ -246,6 +260,7 @@ func (p *Deploy) DoInstall() {
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
+			continue
 		} else {
 			fmt.Println("Cmd输出:", cmdOutput)
 		}
