@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Select, Input, Button, Checkbox, Divider, Table, Modal } from 'antd';
 import { SearchOutlined ,ExclamationCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
@@ -9,7 +9,7 @@ import { GetSelectedLocalPrinterDrivers, SetSelectedPrinters
 
 const useStyles = createStyles(({ css }) => ({
   configContainer: css`
-    width: 78%;
+    width: 100%;
     padding: 22px;
     background-color: #F4F5F7;
     height: 100vh;
@@ -120,7 +120,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
 
   // 使用上下文获取数据
   const appContext = useAppContext();
-  const { printerModels,networkPinterModels, server, port } = useAppContext();
+  const { printerModels,networkPinterModels  } = useAppContext();
 
    // 将 printerModels 转换为 Select 组件需要的 options 格式
    const options = (printerModels || []).map(model => ({
@@ -252,6 +252,9 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         // 错误处理
       }
     };
+  //   useEffect(() => {
+  //     getNetworkPinterList(''); // 传入适当的搜索值
+  // }, []);
 
   return (
     <div className={styles.configContainer}>
@@ -262,7 +265,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
           <span className={styles.label}>Printer Models:</span>
           <Select style={{ width: 350, textAlign: 'left' }} placeholder="select" 
             options={options} dropdownStyle={{ textAlign: 'left' }}
-            onChange={handlePrinterModelChange}
+            onChange={handlePrinterModelChange} allowClear={true}
             />
         </div>
         <Divider dashed className={styles.divider} />
@@ -272,6 +275,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
             options={driverOptions} dropdownStyle={{ textAlign: 'left' }}
             onChange={(value) => setPrinterDriver(value)}
             value={printerDriver === "" ? undefined : printerDriver}
+            allowClear={true}
             />
         </div>
       </div>

@@ -85,13 +85,13 @@ interface WelcomeProps {
 const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const { styles } = useStyles();
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [server, setServer] = useState<string>('');
-    const [port, setPort] = useState<string>('');
+    // const [server, setServer] = useState<string>('');
+    // const [port, setPort] = useState<string>('');
     const [connected, setConnected] = useState<boolean>(false);
 
     // 使用上下文
     const appContext = useAppContext();
-    const { computerInfo } = useAppContext();
+    const { computerInfo ,server,port} = useAppContext();
 
     const reloadTip = () => {
       setIsLoading(false);
@@ -101,9 +101,29 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
         content: 'Connection failed. Please try again.',
         okText: 'Confirm',
+        cancelText: 'Close',
         centered: true,
         okButtonProps: {
-          style: { backgroundColor: '#0052cc',width: '90px' }
+          style: { backgroundColor: '#0052cc',width: '90px' ,display: 'none'}
+        },
+        cancelButtonProps: {
+          style: { width: '90px' }
+        }
+      })
+    }
+
+    const oaServerTip = () => {
+      setIsLoading(false);
+      setConnected(false);
+      Modal.confirm({
+        title: 'Information',
+        icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+        content: 'Failed to obtain OA Server information; installation is not possible.',
+        okText: 'Confirm',
+        cancelText: 'Close',
+        centered: true,
+        okButtonProps: {
+          style: { backgroundColor: '#0052cc',width: '90px' ,display: 'none'}
         },
         cancelButtonProps: {
           style: { width: '90px' }
@@ -118,10 +138,11 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         title: 'Information',
         icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
         content: 'Please input the server and port.',
-        okText: 'Confirm',
+        cancelText: 'Close',
         centered: true,
+        
         okButtonProps: {
-          style: { backgroundColor: '#0052cc',width: '90px' }
+          style: { backgroundColor: '#0052cc',width: '90px' ,display: 'none'}
         },
         cancelButtonProps: {
           style: { width: '90px' }
@@ -137,7 +158,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       const info = await InitClient(server, port);
       appContext.setServer(server);
       appContext.setPort(port);
-      getPrinterModels();
+      
       getOAServer();
       
     } catch (error) {
@@ -150,6 +171,12 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getOAServer = async () => {
     try {
       const oaServer = await GetOAServer(appContext.computerInfo.ip);
+      if (typeof oaServer === 'string' && oaServer.length > 0) {
+        
+        getPrinterModels();
+      }else{
+        oaServerTip();
+      }
       appContext.setComputerInfo({
         name: computerInfo.name,
         seed: computerInfo.seed,
@@ -157,7 +184,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         ip: computerInfo.ip,
       });
     } catch (error) {
-      reloadTip();
+      oaServerTip();
     } 
   };
 
@@ -221,7 +248,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
           <Input 
             placeholder="Please input" 
             value={server}
-            onChange={(e) => setServer(e.target.value)}
+            onChange={(e) =>  appContext.setServer(e.target.value)}
             style={{ width: '230px' }}
           />
         </div>
@@ -230,7 +257,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
           <Input 
             placeholder="Please input" 
             value={port}
-            onChange={(e) => setPort(e.target.value)}
+            onChange={(e) =>  appContext.setPort(e.target.value)}
             style={{ width: '230px' }}
           />
         </div>

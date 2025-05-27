@@ -28,9 +28,9 @@ const App: React.FC = () => {
                 {showComponentsPage === 0 && (
                     <Welcome onStartClick={showConfigurationPage} />
                 )}
-                {showComponentsPage === 1 && (
+                <div style={{ display: showComponentsPage === 1 ? 'block' : 'none' , width: '78%'}}>
                     <Configuration onBack={showWelcomePage} onSwitchToDeploy={showDeployPage}/>
-                )}
+                </div>
                 {showComponentsPage === 2 && (
                     <Deploy onDeployBack={showConfigurationPage}/>
                 )}
