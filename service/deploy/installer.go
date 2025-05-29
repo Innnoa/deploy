@@ -260,6 +260,7 @@ func (p *Deploy) DoInstall() {
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
+			deleteTempFiles("C:\\Temp\\tool")
 			continue
 		} else {
 			fmt.Println("Cmd输出:", cmdOutput)
