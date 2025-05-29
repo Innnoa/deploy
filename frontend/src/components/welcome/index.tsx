@@ -250,6 +250,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
             value={server}
             onChange={(e) =>  appContext.setServer(e.target.value)}
             style={{ width: '230px' }}
+            disabled={connected}
           />
         </div>
         <div className={styles.inputGroup}>
@@ -259,6 +260,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
             value={port}
             onChange={(e) =>  appContext.setPort(e.target.value)}
             style={{ width: '230px' }}
+            disabled={connected}
           />
         </div>
       </div>
