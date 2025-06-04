@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"recovery-unit-deploy/service/common"
 )
 
 // App struct
@@ -28,5 +28,5 @@ func (a *App) Greet(name string) string {
 }
 
 func (a *App) LogFromFrontend(message string) {
-	log.Println("[Frontend]", message)
+	common.AppLogger.Info(fmt.Sprintln("[Frontend]", message))
 }

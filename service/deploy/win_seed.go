@@ -4,7 +4,7 @@
 package deploy
 
 import (
-	"log"
+	"recovery-unit-deploy/service/common"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -12,14 +12,14 @@ import (
 func getRegValue(key registry.Key, path string, name string) string {
 	key, err := registry.OpenKey(key, path, registry.QUERY_VALUE)
 	if err != nil {
-		log.Println(err)
+		common.AppLogger.Error(err.Error())
 		return ""
 	}
 	defer key.Close()
 
 	value, _, err := key.GetStringValue(name)
 	if err != nil {
-		log.Println(err)
+		common.AppLogger.Error(err.Error())
 		return ""
 	}
 	return value

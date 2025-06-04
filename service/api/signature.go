@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/url"
+	"recovery-unit-deploy/service/common"
 	"reflect"
 	"sort"
 	"strings"
@@ -144,7 +144,7 @@ func generateSignature(method string, body interface{}, params map[string]string
 		// 序列化为JSON字节数组
 		jsonData, err := json.Marshal(body)
 		if err != nil {
-			log.Printf("json.Marshal: %v", err)
+			common.AppLogger.Error(fmt.Sprintf("json.Marshal: %v", err))
 			return ""
 		}
 		// 转换为字符串

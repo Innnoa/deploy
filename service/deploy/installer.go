@@ -185,6 +185,7 @@ func (p *Deploy) DoInstall() {
 	err := uploadInstallInfo()
 	if err != nil {
 		setAllStatusFail()
+		return
 	}
 
 	// 配置参数
@@ -194,15 +195,16 @@ func (p *Deploy) DoInstall() {
 	} else {
 		server = common.CurrentOA.ServerName
 	}
-	username := "Administrator" //get from server
-	password := "Deepit123"     //get from server
+	username := common.CurrentOA.UserName //get from server
+	encryptedPassword := common.CurrentOA.Password
+	password := common.Decode(encryptedPassword) //get from server
 	shareName := "MasterOAServer"
 
 	// 连接SMB
 	share, cleanup, err := connectSMB(server, username, password, shareName)
 	defer cleanup()
 	if err != nil {
-		fmt.Println("连接失败:", err)
+		common.AppLogger.Error(fmt.Sprintln("连接失败:", err))
 		setAllStatusFail()
 		return
 	}
@@ -211,12 +213,29 @@ func (p *Deploy) DoInstall() {
 	// 执行命令并捕获输出
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("连接失败: %v\n输出:\n%s", err, ConvertByte2String(output, GB18030))
+		common.AppLogger.Error(fmt.Sprintf("连接失败: %v\n输出:\n%s", err, ConvertByte2String(output, GB18030)))
 		setAllStatusFail()
 		return
 	}
 
-	fmt.Printf("连接成功！输出:\n%s", ConvertByte2String(output, GB18030))
+	common.AppLogger.Info(fmt.Sprintf("连接成功！输出:\n%s", ConvertByte2String(output, GB18030)))
+
+	target := "C:/Temp/tool"
+	jobs := "jobs"
+	//Copy bat file that will run first before running app bat
+
+	deploy := "deploy"
+	beforeBats := []string{"CTALAN.bat", "OTHERS.bat", "Printer.bat", "PrintQ.bat"}
+
+	for _, bat := range beforeBats {
+		if err := copyFromSMB(share, path.Join(deploy, bat), path.Join(target, bat)); err != nil {
+			common.AppLogger.Error(fmt.Sprintln("操作失败:", err))
+			setAllStatusFail()
+			return
+		} else {
+			common.AppLogger.Info(fmt.Sprintln("文件成功拷贝至:", path.Join(target, bat)))
+		}
+	}
 
 	for i := range installedPackages {
 		var app common.AppId
@@ -225,18 +244,18 @@ func (p *Deploy) DoInstall() {
 
 		installedPackages[i].Status = common.Running.String()
 
-		remoteFile := path.Join("jobs", installedPackages[i].WinFile)
-		localPath := path.Join("C:/Temp/tool", installedPackages[i].WinFile)
+		remoteFile := path.Join(jobs, installedPackages[i].WinFile)
+		localPath := path.Join(target, installedPackages[i].WinFile)
 
 		// 执行拷贝
 		if err := copyFromSMB(share, remoteFile, localPath); err != nil {
-			fmt.Println("操作失败:", err)
+			common.AppLogger.Error(fmt.Sprintln("操作失败:", err))
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = "Copy file from OA Server failed."
 			api.InstallationFailed(app)
 			continue
 		} else {
-			fmt.Println("文件成功拷贝至:", localPath)
+			common.AppLogger.Info(fmt.Sprintln("文件成功拷贝至:", localPath))
 		}
 
 		os.Setenv("SRC", "\\\\"+server+"\\"+shareName+"\\"+installedPackages[i].Path)
@@ -244,31 +263,31 @@ func (p *Deploy) DoInstall() {
 		// 执行第一个bat文件
 		batOutput, err := runScript(localPath)
 		if err != nil {
-			fmt.Println("错误:", err)
+			common.AppLogger.Error(fmt.Sprintln("错误:", err))
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
 			continue
 		}
-		fmt.Println("Bat输出:", batOutput)
+		common.AppLogger.Info(fmt.Sprintln("Bat输出:", batOutput))
 
 		// 执行第二个cmd文件
 		localCmd := path.Join("C:/Temp/tool", "JOB.CMD")
 		cmdOutput, err := runScript(localCmd)
 		if err != nil {
-			fmt.Println("JOB.CMD 执行错误:", err)
+			common.AppLogger.Error(fmt.Sprintln("JOB.CMD 执行错误:", err))
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
 			deleteTempFiles("C:\\Temp\\tool")
 			continue
 		} else {
-			fmt.Println("Cmd输出:", cmdOutput)
+			common.AppLogger.Info(fmt.Sprintln("Cmd输出:", cmdOutput))
 		}
 
 		err = deleteTempFiles("C:\\Temp\\tool")
 		if err != nil {
-			fmt.Println("delete文件错误:", err)
+			common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = err.Error()
 			api.InstallationFailed(app)
@@ -302,7 +321,7 @@ func deleteTempFiles(dir string) error {
 		fullPath := filepath.Join(dir, entry.Name())
 		// 递归删除子项（文件或目录）
 		if err := os.RemoveAll(fullPath); err != nil {
-			fmt.Printf("删除 %s 失败: %v", fullPath, err)
+			common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", fullPath, err))
 		}
 	}
 
@@ -310,6 +329,6 @@ func deleteTempFiles(dir string) error {
 }
 
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
-	fmt.Printf("GetInstallStatus")
+	common.AppLogger.Info("GetInstallStatus")
 	return installedPackages
 }

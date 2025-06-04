@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"recovery-unit-deploy/service/common"
@@ -189,7 +188,7 @@ func (c *APIClient) CallAPI(
 }
 
 func GetOAServer(ip string) string {
-	log.Printf("get OAServer from ip: %s", ip)
+	common.AppLogger.Info(fmt.Sprintf("get OAServer from ip: %s", ip))
 
 	var request OAServerRequest
 	request.IP = ip
@@ -208,18 +207,18 @@ func GetOAServer(ip string) string {
 	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getOAServer", nil, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return ""
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return ""
 	}
 
 	var result OAServerResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return ""
 	}
 
@@ -230,7 +229,7 @@ func GetOAServer(ip string) string {
 }
 
 func GetPrinterModels() []common.PrinterModel {
-	log.Printf("get Printer models.")
+	common.AppLogger.Info("get Printer models.")
 
 	var models []common.PrinterModel
 
@@ -246,18 +245,18 @@ func GetPrinterModels() []common.PrinterModel {
 	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getPrinterBrands", nil, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return models
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return models
 	}
 
 	var result PrinterModelResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return models
 	}
 
@@ -267,7 +266,7 @@ func GetPrinterModels() []common.PrinterModel {
 }
 
 func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
-	log.Printf("get driver list of printer from model.")
+	common.AppLogger.Info("get driver list of printer from model.")
 
 	var drivers []common.PackageInfo
 
@@ -287,18 +286,18 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByBrand", nil, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return drivers
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return drivers
 	}
 
 	var result LocalPrinterDriverResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return drivers
 	}
 
@@ -306,7 +305,7 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 }
 
 func GetNetworkPinterList(keyword string) []common.Printer {
-	log.Printf("get network printer list.")
+	common.AppLogger.Info("get network printer list.")
 
 	var printers []common.Printer
 
@@ -327,30 +326,30 @@ func GetNetworkPinterList(keyword string) []common.Printer {
 	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getNetworkPrinters", nil, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return printers
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return printers
 	}
 
-	log.Printf("server returns network printer : %s", string(data))
+	common.AppLogger.Info(fmt.Sprintf("server returns network printer : %s", string(data)))
 
 	var result NetworkPrinterResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return printers
 	}
 
-	log.Printf("Unmarshal network printer : %v", result)
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal network printer : %v", result))
 
 	return result.Data
 }
 
 func GetAllPackages(pol string, seed string) []common.PackageInfo {
-	log.Printf("get all application that the computer can install by pol and seed.")
+	common.AppLogger.Info("get all application that the computer can install by pol and seed.")
 
 	var apps []common.PackageInfo
 
@@ -371,18 +370,18 @@ func GetAllPackages(pol string, seed string) []common.PackageInfo {
 	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getInstallableApps", nil, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return apps
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return apps
 	}
 
 	var result PackageResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return apps
 	}
 
@@ -390,7 +389,7 @@ func GetAllPackages(pol string, seed string) []common.PackageInfo {
 }
 
 func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
-	log.Printf("get selected network printer drivers.")
+	common.AppLogger.Info("get selected network printer drivers.")
 	var apps []common.PackageInfo
 
 	var request NetworkPrinterDriverRequest
@@ -414,18 +413,18 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByIds", nil, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return apps
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return apps
 	}
 
 	var result NetworkPrinterDriverResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return apps
 	}
 
@@ -433,7 +432,7 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 }
 
 func UploadInstallInfo(info common.InstallInfo) error {
-	log.Printf("upload install info.")
+	common.AppLogger.Info("upload install info.")
 
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
@@ -449,27 +448,27 @@ func UploadInstallInfo(info common.InstallInfo) error {
 	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", info, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return err
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return fmt.Errorf("业务错误: HTTP %d → %s", status, string(data))
 	}
 
 	var result UploadInstallInfoResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return err
 	}
 
-	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallResponse : %v", result))
 	return nil
 }
 
 func StartInstall(id common.AppId) {
-	log.Printf("start install.")
+	common.AppLogger.Info("start install.")
 
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
@@ -485,26 +484,26 @@ func StartInstall(id common.AppId) {
 	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", id, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return
 	}
 
 	var result UpdateInstallStatusResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return
 	}
 
-	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
 
 func InstallationSuccess(id common.AppId) {
-	log.Printf("install success.")
+	common.AppLogger.Info("install success.")
 
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
@@ -520,26 +519,26 @@ func InstallationSuccess(id common.AppId) {
 	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", id, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return
 	}
 
 	var result UpdateInstallStatusResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return
 	}
 
-	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
 
 func InstallationFailed(id common.AppId) {
-	log.Printf("install failed.")
+	common.AppLogger.Info("install failed.")
 
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
@@ -555,20 +554,20 @@ func InstallationFailed(id common.AppId) {
 	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", id, m)
 
 	if err != nil {
-		log.Printf("请求异常: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
 		return
 	}
 
 	if status != http.StatusOK {
-		log.Printf("业务错误: HTTP %d → %s", status, string(data))
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
 		return
 	}
 
 	var result UpdateInstallStatusResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		log.Printf("JSON解析失败: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return
 	}
 
-	log.Printf("Unmarshal UpdateInstallResponse : %v", result)
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
