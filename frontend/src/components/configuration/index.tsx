@@ -275,7 +275,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
             options={driverOptions} dropdownStyle={{ textAlign: 'left' }}
             onChange={(value) => setPrinterDriver(value)}
             value={printerDriver === "" ? undefined : printerDriver}
-            allowClear={true}
+            allowClear={true} disabled={printerModel === "" || printerModel === undefined}
             />
         </div>
       </div>
