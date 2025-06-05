@@ -2,6 +2,9 @@ package main
 
 import (
 	"embed"
+	"fmt"
+	"net"
+	"os"
 	"recovery-unit-deploy/service/common"
 	"recovery-unit-deploy/service/deploy"
 
@@ -14,7 +17,44 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// lockPort 用于进程间通信的端口，应设为应用唯一的端口
+const lockPort = 60629
+
+// 检查应用是否已经运行
+func isAlreadyRunning() bool {
+	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", lockPort))
+	if err != nil {
+		// 端口已被占用，说明已有实例运行
+		return true
+	}
+	defer conn.Close()
+	return false
+}
+
+// 尝试获取实例锁
+func acquireAppLock() (net.Listener, error) {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", lockPort))
+	if err != nil {
+		return nil, fmt.Errorf("应用已在运行中: %v", err)
+	}
+	return listener, nil
+}
+
 func main() {
+	// 1. 防止双重启动
+	if isAlreadyRunning() {
+		fmt.Println("应用程序已在运行中")
+		os.Exit(0)
+	}
+
+	// 获取应用锁
+	listener, err := acquireAppLock()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer listener.Close()
+
 	// Create an instance of the app structure
 	app := NewApp()
 
@@ -23,7 +63,7 @@ func main() {
 	defer common.CloseLogger()
 
 	// Create application with options
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:         "Deploy",
 		Width:         1024,
 		Height:        768,
@@ -31,10 +71,11 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.startup,
-		Logger:           common.AppLogger,
-		LogLevel:         logger.TRACE,
+		BackgroundColour:   &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		OnStartup:          app.startup,
+		Logger:             common.AppLogger,
+		LogLevel:           logger.TRACE,
+		LogLevelProduction: logger.TRACE,
 		Bind: []interface{}{
 			app, &deploy.Deploy{}},
 	})
