@@ -40,7 +40,15 @@ func runScriptWithArgs(scriptPath string, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3], args[4], args[5])
+	var cmd *exec.Cmd
+	if len(args) == 6 {
+		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3], args[4], args[5])
+	} else if len(args) == 7 {
+		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
+	} else if len(args) == 4 {
+		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3])
+	}
+
 	setHideWindow(cmd)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -301,16 +309,25 @@ func (p *Deploy) DoInstall() {
 		}
 
 		beforebat := ""
+		beforebatouput := ""
+		shortSeed := common.CurrentComputerInfo.Seed[0:4]
+		longSeed := common.CurrentComputerInfo.Seed
 		switch installedPackages[i].AppType {
 		case "APP":
 			beforebat = "CTALAN.bat"
+			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
 		case "OTHERS":
 			beforebat = "OTHERS.bat"
+			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+		case "LOCAL":
+			beforebat = "Printer.bat"
+			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile)
+		case "NETWORK":
+			beforebat = "PrintQ.bat"
+			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP)
 		}
 
-		shortSeed := common.CurrentComputerInfo.Seed[0:4]
-		longSeed := common.CurrentComputerInfo.Seed
-		beforebatouput, err := runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+		// beforebatouput, err := runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("错误:", err))
 			installedPackages[i].Status = common.Failed.String()

@@ -6,7 +6,17 @@ import (
 )
 
 func (p *Deploy) GetNetworkPinterList(keyword string) []common.Printer {
-	printers := api.GetNetworkPinterList(keyword)
+	result := api.GetNetworkPinterList(keyword)
+	var printers []common.Printer
+	networkPrinterDriverList = networkPrinterDriverList[:0]
+
+	for _, value := range result {
+		p := common.Printer{ID: value.ID, PolNo: value.PolNo, IP: value.IP, AppId: value.AppId}
+		printers = append(printers, p)
+
+		networkPrinterDriverList = append(networkPrinterDriverList, value)
+	}
+
 	return printers
 }
 
@@ -19,6 +29,9 @@ func (p *Deploy) GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo 
 	drivers := api.GetSelectedLocalPrinterDrivers(id)
 	localPrinterDriverList = localPrinterDriverList[:0]
 	localPrinterDriverList = drivers
+	for index := range localPrinterDriverList {
+		localPrinterDriverList[index].AppType = "LOCAL"
+	}
 	return localPrinterDriverList
 }
 

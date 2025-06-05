@@ -20,6 +20,20 @@ type ComputerInfo struct {
 	OA   string `json:"oa"`
 }
 
+type PrinterWithPackage struct {
+	ID        string `json:"id"`
+	PolNo     string `json:"pol"`
+	IP        string `json:"ip"`
+	AppId     string `json:"appid"`
+	AppName   string `json:"appname"`
+	BrandId   string `json:"brandId"`
+	AppType   string `json:"apptype"`
+	Path      string `json:"installpath"`
+	WinFile   string `json:"winfile"`
+	UOSFile   string `json:"uosdeb"`
+	KylinFile string `json:"kylindeb"`
+}
+
 type Printer struct {
 	ID    string `json:"id"`
 	PolNo string `json:"pol"`
@@ -38,6 +52,8 @@ type PackageInfo struct {
 	KylinFile string `json:"kylindeb"`
 	Status    string `json:"status"`
 	Error     string `json:"error"`
+	PolNo     string `json:"pol"`
+	IP        string `json:"ip"`
 }
 
 type Status int
