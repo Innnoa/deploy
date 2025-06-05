@@ -1,13 +1,18 @@
 import React, { useEffect, useState }  from 'react';
-import { Space } from 'antd';
+import { Space ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import logo from '../../assets/images/info-logo.png';
 import computerImg from '../../assets/images/computer-img.png';
 import seedName from '../../assets/images/seed-name.png';
 import serverName from '../../assets/images/server-name.png';
 import ipName from '../../assets/images/ip-name.png';
-import {GetComputerInfo} from "../../../wailsjs/go/deploy/Deploy";
+import {GetComputerInfo , IsAdmin} from "../../../wailsjs/go/deploy/Deploy";
 import { useAppContext } from '../../context/AppContext';
+import { ExclamationCircleFilled} from '@ant-design/icons';
+
+
+//合并冲突
+//git pull --no-rebase origin main
 
 // 使用 createStyles 定义样式
 const useStyles = createStyles(({ css }) => ({
@@ -118,6 +123,40 @@ const Info: React.FC = () => {
 
     fetchComputerInfo();
   }, []);
+
+  useEffect(() => {
+    //管理员才可以继续
+    const fetchIsAdmin = async () => {
+      try {
+        
+        const info = await IsAdmin();
+          if (info != true){
+            Modal.confirm({
+              title: 'Information',
+              icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+              content: 'Please start the program as an administrator user.',
+              cancelText: 'Close',
+              centered: true,
+              
+              okButtonProps: {
+                style: { display: 'none'}
+              },
+              cancelButtonProps: {
+                style: { width: '90px' }
+              },
+              onCancel: () => {
+                (window as any).runtime?.Quit();
+              }
+            });
+          }
+      } catch (error) {
+      }
+    };
+
+    fetchIsAdmin();
+    
+  }, []);
+  
 
   return (
     <div className={styles.infoContainer}>
