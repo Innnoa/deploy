@@ -59,7 +59,7 @@ type NetworkPrinterRequest struct {
 
 type NetworkPrinterResponse struct {
 	PublicResponse
-	Data []common.Printer `json:"data"`
+	Data []common.PrinterWithPackage `json:"data"`
 }
 
 type PackageRequest struct {
@@ -304,10 +304,10 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 	return result.Data
 }
 
-func GetNetworkPinterList(keyword string) []common.Printer {
+func GetNetworkPinterList(keyword string) []common.PrinterWithPackage {
 	common.AppLogger.Info("get network printer list.")
 
-	var printers []common.Printer
+	var printers []common.PrinterWithPackage
 
 	var request NetworkPrinterRequest
 	request.Keyword = keyword

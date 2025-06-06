@@ -3,10 +3,18 @@
 
 package deploy
 
-import "golang.org/x/sys/windows"
+import (
+	"recovery-unit-deploy/service/common"
+
+	"golang.org/x/sys/windows"
+)
 
 // 检查当前是否为管理员权限
 func (p *Deploy) IsAdmin() bool {
+	if !common.CheckAdmin {
+		return true
+	}
+
 	var sid *windows.SID
 	err := windows.AllocateAndInitializeSid(
 		&windows.SECURITY_NT_AUTHORITY,

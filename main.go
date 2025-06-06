@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -41,6 +42,10 @@ func acquireAppLock() (net.Listener, error) {
 }
 
 func main() {
+	devMode := flag.Bool("dev", false, "Enable development mode")
+	flag.Parse()
+	common.CheckAdmin = !*devMode
+
 	// 1. 防止双重启动
 	if isAlreadyRunning() {
 		fmt.Println("应用程序已在运行中")
