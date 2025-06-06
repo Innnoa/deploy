@@ -220,26 +220,33 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
   };
     // 选择打印机型号时调用驱动接口
     const handlePrinterModelChange = async (value: string) => {
-      setPrinterModel(value);
-      try {
-        const drivers = await GetSelectedLocalPrinterDrivers(value);
-         // 将drivers数组中的每个对象的app_name提取出来作为选项
-          const driverOpts = Array.isArray(drivers) 
-          ? drivers.map((driver: any) => ({ 
-              value: driver.id, 
-              label: driver.appname 
-            }))
-          : [];
-        setDriverOptions(driverOpts);
-        // 如果有驱动选项，自动选择第一个
-        if (driverOpts.length > 0) {
-          setPrinterDriver(driverOpts[0].value);
-        }else{
-          setPrinterDriver("");
-        }
-      } catch (e) {
+      if (value === "" || value === undefined){
+        setPrinterModel("");
         setDriverOptions([]);
         setPrinterDriver("");
+        return;
+      }else{
+        setPrinterModel(value);
+        try {
+          const drivers = await GetSelectedLocalPrinterDrivers(value);
+          // 将drivers数组中的每个对象的app_name提取出来作为选项
+            const driverOpts = Array.isArray(drivers) 
+            ? drivers.map((driver: any) => ({ 
+                value: driver.id, 
+                label: driver.appname 
+              }))
+            : [];
+          setDriverOptions(driverOpts);
+          // 如果有驱动选项，自动选择第一个
+          if (driverOpts.length > 0) {
+            setPrinterDriver(driverOpts[0].value);
+          }else{
+            setPrinterDriver("");
+          }
+        } catch (e) {
+          setDriverOptions([]);
+          setPrinterDriver("");
+        }
       }
     };
 
