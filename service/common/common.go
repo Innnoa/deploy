@@ -6,3 +6,5 @@ var CurrentOA OAServer
 
 var Server string
 var Port string
+
+var CheckAdmin bool
