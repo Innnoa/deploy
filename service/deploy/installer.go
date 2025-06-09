@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
+	"strings"
 	"time"
 
 	"github.com/hirochachacha/go-smb2"
@@ -47,6 +48,8 @@ func runScriptWithArgs(scriptPath string, args ...string) (string, error) {
 		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
 	} else if len(args) == 4 {
 		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3])
+	} else if len(args) == 2 {
+		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1])
 	}
 
 	setHideWindow(cmd)
@@ -312,10 +315,13 @@ func (p *Deploy) DoInstall() {
 		beforebatouput := ""
 		shortSeed := common.CurrentComputerInfo.Seed[0:4]
 		longSeed := common.CurrentComputerInfo.Seed
-		switch installedPackages[i].AppType {
+		switch strings.ToUpper(installedPackages[i].AppType) {
 		case "APP":
 			beforebat = "CTALAN.bat"
 			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+		case "SECURITYPATCH":
+			beforebat = installedPackages[i].WinFile
+			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server)
 		case "OTHERS":
 			beforebat = "OTHERS.bat"
 			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
