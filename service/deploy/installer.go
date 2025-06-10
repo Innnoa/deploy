@@ -38,7 +38,7 @@ func ConvertByte2String(byteData []byte, charset Charset) string {
 }
 
 func runScriptWithArgs(scriptPath string, args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
 	var cmd *exec.Cmd
