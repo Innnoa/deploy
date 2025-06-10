@@ -70,7 +70,7 @@ func runScriptWithArgs(scriptPath string, args ...string) (string, error) {
 }
 
 func runScript(scriptPath string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "cmd", "/C", scriptPath)
