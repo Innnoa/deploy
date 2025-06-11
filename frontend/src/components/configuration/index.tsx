@@ -254,7 +254,12 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
     const getNetworkPinterList = async (searchValue: string) => {
       try {
         const models = await GetNetworkPinterList(searchValue);
-        appContext.setNetworkPinterModels(models as any[]);
+        if (models !== null) {
+          // 保存到上下文中
+          appContext.setNetworkPinterModels(models as any[]);
+        }else{
+          appContext.setNetworkPinterModels([]);
+        }
       } catch (error) {
         // 错误处理
       }
