@@ -11,7 +11,7 @@ func getComputerName() string {
 	return name
 }
 
-func getSeedLabel() string {
+func getSeedLabel(kbcode string) string {
 	seed := getSeed()
 	return seed
 }
@@ -45,7 +45,8 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 	var info common.ComputerInfo
 
 	name := getComputerName()
-	seed := getSeedLabel()
+	kbcode := getLastKBCode()
+	seed := getSeedLabel(kbcode)
 	ip := getIP()
 
 	info.Name = name
@@ -54,5 +55,6 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 
 	common.CurrentComputerInfo = info
 
+	// getUploadInfo()
 	return common.CurrentComputerInfo
 }

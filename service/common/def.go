@@ -79,3 +79,26 @@ type InstallInfo struct {
 	Pols   []string `json:"pols"`
 	AppIds []string `json:"appids"`
 }
+
+type DetailComputerInfo struct {
+	PolNo        string `json:"pol"`
+	IP           string `json:"ip"`
+	OS           string `json:"os"`
+	SP           string `json:"sp"`
+	Seedlabel    string `json:"seedlabel"`
+	SystemDrive  string `json:"systemdrive"`
+	NumOfDrive   string `json:"numofdrive"`
+	LastDrive    string `json:"lastdrive"`
+	SizeOfDrive1 string `json:"sizeofdrive1"`
+	SizeOfDrive2 string `json:"sizeofdrive2"`
+	FreeSpaceC   string `json:"freespacec"`
+	FreeSpaceD   string `json:"freespaced"`
+	CpuSpeed     string `json:"cpuspeed"`
+	CpuType      string `json:"cputype"`
+	Ram          string `json:"ram"`
+	PCModel      string `json:"pcmodel"`
+	BootEnv      string `json:"bootenv"`
+	LastSignon   string `json:"lastsignon"`
+	LogonId      string `json:"logonld"`
+	KBCode       string `json:"kbcode"`
+}

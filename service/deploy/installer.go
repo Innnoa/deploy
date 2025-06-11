@@ -367,6 +367,9 @@ func (p *Deploy) DoInstall() {
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
 	}
+
+	getUploadInfo()
+	api.UploadPCInfo(common.DetailPCInfo)
 }
 
 func setAllStatusFail() {

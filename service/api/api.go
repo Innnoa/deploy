@@ -103,6 +103,11 @@ type UpdateInstallStatusResponse struct {
 	Data string `json:"data"`
 }
 
+type UploadPCInfoRequest struct {
+	PublicRequest
+	Info common.DetailComputerInfo
+}
+
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
@@ -570,4 +575,45 @@ func InstallationFailed(id common.AppId) {
 	}
 
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
+}
+
+func UploadPCInfo(info common.DetailComputerInfo) {
+	common.AppLogger.Info("upload pc info.")
+
+	var request UploadPCInfoRequest
+	request.Info = info
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(http.MethodPost, info, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadPcInfo", info, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return
+	}
+
+	var result PublicResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return
+	}
+
+	if result.Code == 0 {
+		common.AppLogger.Info("Upload PC Info Successfully.")
+	} else {
+		common.AppLogger.Error(fmt.Sprintf("Upload PC Info Failed. code: %d, msg: %s", result.Code, result.Message))
+	}
 }
