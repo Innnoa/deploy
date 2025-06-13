@@ -237,58 +237,44 @@ func (p *Deploy) DoInstall() {
 	encryptedPassword := common.CurrentOA.Password
 	password := common.Decode(encryptedPassword) //get from server
 
-	// 连接SMB
-	conn, session, cleanup, err := connectSMB(server, username, password)
-	defer cleanup()
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("连接失败:", err))
+	exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
+
+	// 1️⃣ 挂载远程共享目录到本地临时路径（Windows）
+	tempMount := "Z:"                             // 临时驱动器盘符
+	remotePath := "\\\\" + server + "\\" + "seed" // 远程共享路径
+	cmdMount := fmt.Sprintf(
+		"net use %s %s /user:%s %s",
+		tempMount, remotePath, username, password,
+	)
+
+	if output, err := exec.Command("cmd", "/C", cmdMount).CombinedOutput(); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("挂载失败: %v\n output: %s\n", err, ConvertByte2String(output, GB18030)))
 		setAllStatusFail()
 		return
 	}
 
+	common.AppLogger.Info("挂载成功")
+
+	root := "pcms"
 	deploy := "deploy"
-	deployshare, mountcleanup, err := mountShare(conn, session, deploy)
-	defer mountcleanup()
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("连接失败:", err))
-		setAllStatusFail()
-		return
-	}
-
 	target := "C:/Temp/tool"
-	//Copy bat file that will run first before running app bat
 
 	beforeBats := []string{"CTALAN.bat", "OTHERS.bat", "Printer.bat", "PrintQ.bat"}
 
 	for _, bat := range beforeBats {
-		if err := copyFromSMB(deployshare, bat, path.Join(target, bat)); err != nil {
-			common.AppLogger.Error(fmt.Sprintln("操作失败:", err))
+		//Copy bat file that will run first before running app bat
+		localPath := filepath.Join(target, bat)
+		source := filepath.Join(tempMount, filepath.Base(remotePath), root, deploy, bat)
+		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
+
+		if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("%s 拷贝失败: %v\n输出: %s", cmdCopy, err, ConvertByte2String(output, GB18030)))
 			setAllStatusFail()
 			return
-		} else {
-			common.AppLogger.Info(fmt.Sprintln("文件成功拷贝至:", path.Join(target, bat)))
 		}
-	}
 
-	shareName := "seed"
-	seedshare, seedcleanup, err := mountShare(conn, session, shareName)
-	defer seedcleanup()
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("连接失败:", err))
-		setAllStatusFail()
-		return
+		common.AppLogger.Info(fmt.Sprintf("文件 %s 拷贝成功", path.Join(root, deploy, bat)))
 	}
-
-	cmd := exec.Command("net", "use", "\\\\"+server+"\\"+shareName, password, "/user:"+username)
-	// 执行命令并捕获输出
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintf("连接失败: %v\n输出:\n%s", err, ConvertByte2String(output, GB18030)))
-		setAllStatusFail()
-		return
-	}
-
-	common.AppLogger.Info(fmt.Sprintf("连接成功！输出:\n%s", ConvertByte2String(output, GB18030)))
 
 	for i := range installedPackages {
 		var app common.AppId
@@ -297,19 +283,19 @@ func (p *Deploy) DoInstall() {
 
 		installedPackages[i].Status = common.Running.String()
 
-		remoteFile := path.Join("pcms", installedPackages[i].Path, installedPackages[i].WinFile)
-		localPath := path.Join(target, installedPackages[i].WinFile)
+		// remoteFile := path.Join(installedPackages[i].Path, installedPackages[i].WinFile)
+		// localPath := path.Join(target, installedPackages[i].WinFile)
 
-		// 执行拷贝
-		if err := copyFromSMB(seedshare, remoteFile, localPath); err != nil {
-			common.AppLogger.Error(fmt.Sprintln("操作失败:", err))
-			installedPackages[i].Status = common.Failed.String()
-			installedPackages[i].Error = "Copy file from OA Server failed."
-			api.InstallationFailed(app)
-			continue
-		} else {
-			common.AppLogger.Info(fmt.Sprintln("文件成功拷贝至:", localPath))
-		}
+		// // 执行拷贝
+		// if err := copyFromSMB(rootShare, remoteFile, localPath); err != nil {
+		// 	common.AppLogger.Error(fmt.Sprintln("操作失败:", err))
+		// 	installedPackages[i].Status = common.Failed.String()
+		// 	installedPackages[i].Error = "Copy file from OA Server failed."
+		// 	api.InstallationFailed(app)
+		// 	continue
+		// } else {
+		// 	common.AppLogger.Info(fmt.Sprintln("文件成功拷贝至:", localPath))
+		// }
 
 		beforebat := ""
 		beforebatouput := ""
@@ -370,6 +356,8 @@ func (p *Deploy) DoInstall() {
 
 	getUploadInfo()
 	api.UploadPCInfo(common.DetailPCInfo)
+
+	defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
 }
 
 func setAllStatusFail() {
@@ -411,4 +399,8 @@ func deleteTempFiles(dir string) error {
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
 	common.AppLogger.Info("GetInstallStatus")
 	return installedPackages
+}
+
+func (p *Deploy) Reboot() {
+	// reboot()
 }
