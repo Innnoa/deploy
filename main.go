@@ -9,7 +9,6 @@ import (
 	"recovery-unit-deploy/service/common"
 	"recovery-unit-deploy/service/deploy"
 
-	"github.com/spf13/viper"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -21,6 +20,8 @@ var assets embed.FS
 
 // lockPort 用于进程间通信的端口，应设为应用唯一的端口
 const lockPort = 60629
+
+var Version = "unset" // 默认值
 
 // 检查应用是否已经运行
 func isAlreadyRunning() bool {
@@ -42,23 +43,12 @@ func acquireAppLock() (net.Listener, error) {
 	return listener, nil
 }
 
-func getWailsVersion() (string, error) {
-	viper.SetConfigName("wails") // 文件名（不含扩展名）
-	viper.AddConfigPath(".")     // 搜索当前目录
-	viper.SetConfigType("json")  // 文件类型
-
-	if err := viper.ReadInConfig(); err != nil {
-		return "", err
-	}
-
-	info := viper.GetStringMapString("info")
-	return info["productversion"], nil // 直接获取版本号
-}
-
 func main() {
 	common.InitLogger("Deploy")
 
 	defer common.CloseLogger()
+
+	common.AppLogger.Info(fmt.Sprintf("Current version is: %s", Version))
 
 	devMode := flag.Bool("dev", false, "Enable development mode")
 	flag.Parse()
@@ -80,13 +70,6 @@ func main() {
 
 	// Create an instance of the app structure
 	app := NewApp()
-
-	version, err := getWailsVersion() // 调用解析函数
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintf("读取版本失败: %v", err))
-		version = "unknown"
-	}
-	common.AppLogger.Info(fmt.Sprintf("Current version is: %s", version))
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:         "Deploy",

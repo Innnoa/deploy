@@ -5,8 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -16,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hirochachacha/go-smb2"
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
@@ -89,85 +86,6 @@ func runScript(scriptPath string) (string, error) {
 		return "", fmt.Errorf("启动%s失败: %v", scriptPath, err)
 	}
 	return output, nil
-}
-
-func mountShare(conn net.Conn, session *smb2.Session, shareName string) (*smb2.Share, func(), error) {
-	// 4. 挂载共享文件夹
-	share, err := session.Mount(shareName)
-	if err != nil {
-		return nil, nil, fmt.Errorf("挂载共享失败: %v", err)
-	}
-
-	// 返回共享对象及清理函数
-	cleanup := func() {
-		share.Umount()
-	}
-	return share, cleanup, nil
-}
-
-// 创建SMB客户端连接
-func connectSMB(server, username, password string) (net.Conn, *smb2.Session, func(), error) {
-	// 1. 建立TCP连接
-	conn, err := net.Dial("tcp", server+":445")
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("连接服务器失败: %v", err)
-	}
-
-	// 2. 配置NTLM认证
-	dialer := &smb2.Dialer{
-		Initiator: &smb2.NTLMInitiator{
-			User:     username,
-			Password: password,
-		},
-	}
-
-	// 3. 创建会话
-	session, err := dialer.Dial(conn)
-	if err != nil {
-		conn.Close()
-		return nil, nil, nil, fmt.Errorf("认证失败: %v", err)
-	}
-
-	// 返回共享对象及清理函数
-	cleanup := func() {
-		session.Logoff()
-		conn.Close()
-	}
-	return conn, session, cleanup, nil
-}
-
-// 从SMB复制文件到本地
-func copyFromSMB(share *smb2.Share, remotePath, localPath string) error {
-	// 1. 打开远程文件
-	remoteFile, err := share.Open(remotePath)
-	if err != nil {
-		return fmt.Errorf("无法打开远程文件: %v", err)
-	}
-	defer remoteFile.Close()
-
-	// 2. 创建本地文件
-	err = CreateFileWithAutoDirs(localPath)
-	if err != nil {
-		return fmt.Errorf("创建本地文件失败: %v", err)
-	}
-
-	localFile, err := os.OpenFile(localPath, os.O_RDWR, 0644)
-	if err != nil {
-		return fmt.Errorf("打开文件失败: %v", err)
-	}
-	defer localFile.Close()
-
-	// 3. 复制文件内容
-	if _, err := io.Copy(localFile, remoteFile); err != nil {
-		return fmt.Errorf("文件复制失败: %v", err)
-	}
-
-	// 4. 同步写入（可选）
-	if err := localFile.Sync(); err != nil {
-		return fmt.Errorf("文件同步失败: %v", err)
-	}
-
-	return nil
 }
 
 func CreateFileWithAutoDirs(filePath string) error {

@@ -45,8 +45,9 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 	var info common.ComputerInfo
 
 	name := getComputerName()
-	kbcode := getLastKBCode()
-	seed := getSeedLabel(kbcode)
+	// kbcode := getLastKBCode()
+
+	seed := getSeedLabel("")
 	ip := getIP()
 
 	info.Name = name

@@ -17,7 +17,7 @@ all: build upload
 
 # 构建 Wails 应用
 build:
-	wails build -webview2 Embed -clean
+	wails build -webview2 Embed -clean -ldflags "-X main.Version=$(VERSION)"
 
 # 上传到 GitLab Generic Package Registry
 upload:
