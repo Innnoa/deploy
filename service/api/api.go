@@ -108,6 +108,16 @@ type UploadPCInfoRequest struct {
 	Info common.DetailComputerInfo
 }
 
+type GetSeedLabelRequest struct {
+	PublicRequest
+	KBCode string `json:"kbcode"`
+}
+
+type GetSeedLabelResponse struct {
+	PublicResponse
+	Data string `json:"data"`
+}
+
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
@@ -616,4 +626,51 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 	} else {
 		common.AppLogger.Error(fmt.Sprintf("Upload PC Info Failed. code: %d, msg: %s", result.Code, result.Message))
 	}
+}
+
+func GetSeedLabel(kbcode string) string {
+	localSeed := common.GetSeed()
+
+	common.AppLogger.Info("get seedlabel from kbcode")
+
+	var request GetSeedLabelRequest
+	request.KBCode = kbcode
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(http.MethodGet, nil, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedLabel", nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return ""
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return ""
+	}
+
+	var result GetSeedLabelResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return ""
+	}
+
+	if result.Data == "" {
+		result.Data = localSeed
+	}
+
+	if localSeed != result.Data {
+		//update local seed
+		common.UpdateLocalSeed(result.Data)
+	}
+	return result.Data
 }

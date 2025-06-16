@@ -112,7 +112,7 @@ const Info: React.FC = () => {
         const info = await GetComputerInfo();
          appContext.setComputerInfo({
           name: info.name,
-          seed: info.seed,
+          seed: '-',
           oa:  '-',
           ip: info.ip
         });

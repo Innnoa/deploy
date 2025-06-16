@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {InitClient,GetOAServer,
+import {InitClient,GetOAServer,GetSeedLabel,
         GetPrinterModels, GetNetworkPinterList
 } from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
@@ -130,6 +130,26 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         }
       })
     }
+
+     const seedLabelTip = () => {
+      setIsLoading(false);
+      setConnected(false);
+      Modal.confirm({
+        title: 'Information',
+        icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+        content: 'Failed to obtain SeedLabel; installation is not possible.',
+        okText: 'Confirm',
+        cancelText: 'Close',
+        centered: true,
+        okButtonProps: {
+          style: { backgroundColor: '#0052cc',width: '90px' ,display: 'none'}
+        },
+        cancelButtonProps: {
+          style: { width: '90px' }
+        }
+      })
+    }
+
   // 添加连接服务器的函数
   const connectToServer = async () => {
     // 检查 server 和 port 是否已输入
@@ -173,18 +193,39 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       const oaServer = await GetOAServer(appContext.computerInfo.ip);
       if (typeof oaServer === 'string' && oaServer.length > 0) {
         
-        getPrinterModels();
+        getSeedlabel();
       }else{
         oaServerTip();
       }
       appContext.setComputerInfo({
         name: computerInfo.name,
-        seed: computerInfo.seed,
+        seed: "-",
         oa:  oaServer,
         ip: computerInfo.ip,
       });
     } catch (error) {
       oaServerTip();
+    } 
+  };
+
+    // 获取Seedlabel
+  const getSeedlabel = async () => {
+    try {
+      const seed = await GetSeedLabel();
+      if (typeof seed === 'string' && seed.length > 0) {
+        
+        getPrinterModels();
+      }else{
+        seedLabelTip();
+      }
+      appContext.setComputerInfo({
+        name: computerInfo.name,
+        seed: seed,
+        oa:  computerInfo.oa,
+        ip: computerInfo.ip,
+      });
+    } catch (error) {
+      seedLabelTip();
     } 
   };
 

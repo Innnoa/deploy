@@ -322,3 +322,7 @@ func (p *Deploy) GetInstallStatus() []common.PackageInfo {
 func (p *Deploy) Reboot() {
 	// reboot()
 }
+
+func (p *Deploy) SaveTemporaryInfo() {
+
+}

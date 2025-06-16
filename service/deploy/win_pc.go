@@ -260,5 +260,5 @@ func removeDuplicates(list []string) []string {
 }
 
 func getOS() string {
-	return getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductName")
+	return common.GetRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductName")
 }

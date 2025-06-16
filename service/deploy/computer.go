@@ -3,17 +3,19 @@ package deploy
 import (
 	"net"
 	"os"
+	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 )
+
+func (c *Deploy) GetSeedLabel() string {
+	kbcode := getLastKBCode()
+	seed := api.GetSeedLabel(kbcode)
+	return seed
+}
 
 func getComputerName() string {
 	name := os.Getenv("COMPUTERNAME")
 	return name
-}
-
-func getSeedLabel(kbcode string) string {
-	seed := getSeed()
-	return seed
 }
 
 func getIP() string {
@@ -45,17 +47,14 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 	var info common.ComputerInfo
 
 	name := getComputerName()
-	// kbcode := getLastKBCode()
 
-	seed := getSeedLabel("")
 	ip := getIP()
 
 	info.Name = name
-	info.Seed = seed
 	info.IP = ip
 
 	common.CurrentComputerInfo = info
 
-	// getUploadInfo()
+	getUploadInfo()
 	return common.CurrentComputerInfo
 }
