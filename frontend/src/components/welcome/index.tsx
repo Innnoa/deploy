@@ -192,17 +192,17 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     try {
       const oaServer = await GetOAServer(appContext.computerInfo.ip);
       if (typeof oaServer === 'string' && oaServer.length > 0) {
-        
+        appContext.setComputerInfo({
+          name: computerInfo.name,
+          seed: "-",
+          oa:  oaServer,
+          ip: computerInfo.ip,
+        });
         getSeedlabel();
       }else{
         oaServerTip();
       }
-      appContext.setComputerInfo({
-        name: computerInfo.name,
-        seed: "-",
-        oa:  oaServer,
-        ip: computerInfo.ip,
-      });
+      
     } catch (error) {
       oaServerTip();
     } 
