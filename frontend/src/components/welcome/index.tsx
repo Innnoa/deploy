@@ -192,13 +192,13 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     try {
       const oaServer = await GetOAServer(appContext.computerInfo.ip);
       if (typeof oaServer === 'string' && oaServer.length > 0) {
-        appContext.setComputerInfo({
-          name: computerInfo.name,
-          seed: "-",
-          oa:  oaServer,
-          ip: computerInfo.ip,
-        });
-        getSeedlabel();
+        // appContext.setComputerInfo({
+        //   name: computerInfo.name,
+        //   seed: "-",
+        //   oa:  oaServer,
+        //   ip: computerInfo.ip,
+        // });
+        getSeedlabel(oaServer);
       }else{
         oaServerTip();
       }
@@ -209,7 +209,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   };
 
     // 获取Seedlabel
-  const getSeedlabel = async () => {
+  const getSeedlabel = async (oaServer:string) => {
     try {
       const seed = await GetSeedLabel();
       if (typeof seed === 'string' && seed.length > 0) {
@@ -221,7 +221,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       appContext.setComputerInfo({
         name: computerInfo.name,
         seed: seed,
-        oa:  computerInfo.oa,
+        oa:  oaServer,
         ip: computerInfo.ip,
       });
     } catch (error) {
