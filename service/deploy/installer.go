@@ -177,6 +177,17 @@ func (p *Deploy) DoInstall() {
 	deploy := "deploy"
 	target := "C:/Temp/tool"
 
+	_, err = os.Stat(target)
+
+	if os.IsNotExist(err) {
+		if err := os.MkdirAll(target, 0755); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("创建本地文件失败: %v", err))
+			setAllStatusFail()
+			return
+		}
+
+	}
+
 	beforeBats := []string{"CTALAN.bat", "OTHERS.bat", "Printer.bat", "PrintQ.bat"}
 
 	for _, bat := range beforeBats {
