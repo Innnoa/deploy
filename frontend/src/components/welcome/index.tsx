@@ -50,26 +50,27 @@ const useStyles = createStyles(({ css }) => ({
   connectingText: css`
     color: #8181A5;
     margin-bottom: 20px;
+    height : 20px;
   `,
-  inputContainer: css`
-    display: flex;
-    margin-bottom: 20px;
-    gap: 10px;
-    margin-top : 20px;
-    `,
-  inputGroup: css`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+  // inputContainer: css`
+  //   display: flex;
+  //   margin-bottom: 20px;
+  //   gap: 10px;
+  //   margin-top : 20px;
+  //   `,
+  // inputGroup: css`
+  //   flex: 1;
+  //   display: flex;
+  //   flex-direction: column;
+  //   align-items: flex-start;
     
-  `,
-  inputLabel: css`
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #222222;
-  `,
+  // `,
+  // inputLabel: css`
+  //   font-size: 14px;
+  //   font-weight: 700;
+  //   margin-bottom: 8px;
+  //   color: #222222;
+  // `,
   startButton: css`
     background-color: #0052cc;
     width: 150px;
@@ -307,7 +308,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         </div>
       </div> */}
       <Text className={styles.connectingText}>
-        {isLoading ? "Connecting to the server, please wait..." : (connected ? `Connected successfully` : "")}
+        {isLoading ? "Connecting to the server, please wait..." : (connected ? `Connected successfully` : " ")}
       </Text>
     <Button 
         type="primary" 
