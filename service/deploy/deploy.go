@@ -8,5 +8,5 @@ type Deploy struct {
 }
 
 func (p *Deploy) InitClient(server string, port string) {
-	api.Client = api.NewAPIClient("http://" + server + ":" + port + "/api-system")
+	api.Client = api.NewAPIClient("http://" + "deploy.ru.com:9900" + "/api-system")
 }

@@ -115,7 +115,7 @@ type GetSeedLabelRequest struct {
 
 type GetSeedLabelResponse struct {
 	PublicResponse
-	Data string `json:"data"`
+	Data common.SeedLabelInfo `json:"data"`
 }
 
 var Client *APIClient
@@ -628,10 +628,14 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 	}
 }
 
-func GetSeedLabel(kbcode string) string {
+func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 	localSeed := common.GetSeed()
 
 	common.AppLogger.Info("get seedlabel from kbcode")
+
+	var seedlabel common.SeedLabelInfo
+	seedlabel.SeedLabel = localSeed
+	seedlabel.Status = "Active"
 
 	var request GetSeedLabelRequest
 	request.KBCode = kbcode
@@ -646,31 +650,31 @@ func GetSeedLabel(kbcode string) string {
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedLabel", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedInfoByKb", nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
-		return ""
+		return seedlabel
 	}
 
 	if status != http.StatusOK {
 		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
-		return ""
+		return seedlabel
 	}
 
 	var result GetSeedLabelResponse
 	if err := json.Unmarshal(data, &result); err != nil {
 		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
-		return ""
+		return seedlabel
 	}
 
-	if result.Data == "" {
-		result.Data = localSeed
+	if result.Data.SeedLabel == "" {
+		result.Data.SeedLabel = localSeed
 	}
 
-	if localSeed != result.Data {
+	if localSeed != result.Data.SeedLabel {
 		//update local seed
-		common.UpdateLocalSeed(result.Data)
+		common.UpdateLocalSeed(result.Data.SeedLabel)
 	}
 	return result.Data
 }

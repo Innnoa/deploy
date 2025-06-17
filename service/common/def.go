@@ -99,6 +99,12 @@ type DetailComputerInfo struct {
 	PCModel      string `json:"pcmodel"`
 	BootEnv      string `json:"bootenv"`
 	LastSignon   string `json:"lastsignon"`
-	LogonId      string `json:"logonld"`
+	LogonId      string `json:"logonid"`
 	KBCode       string `json:"kbcode"`
+}
+
+type SeedLabelInfo struct {
+	Id        string `json:"id"`
+	SeedLabel string `json:"seedlabel"`
+	Status    string `json:"status"`
 }
