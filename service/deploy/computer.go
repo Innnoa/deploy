@@ -7,7 +7,7 @@ import (
 	"recovery-unit-deploy/service/common"
 )
 
-func (c *Deploy) GetSeedLabel() string {
+func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
 	kbcode := getLastKBCode()
 	seed := api.GetSeedLabel(kbcode)
 	return seed

@@ -132,13 +132,13 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       })
     }
 
-     const seedLabelTip = () => {
+     const seedLabelTip = (content:String) => {
       setIsLoading(false);
       setConnected(false);
       Modal.confirm({
         title: 'Information',
         icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
-        content: 'Failed to obtain SeedLabel; installation is not possible.',
+        content: content,
         okText: 'Confirm',
         cancelText: 'Close',
         centered: true,
@@ -213,20 +213,23 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   const getSeedlabel = async (oaServer:string) => {
     try {
       const seed = await GetSeedLabel();
-      if (typeof seed === 'string' && seed.length > 0) {
-        
-        getPrinterModels();
+      if (typeof seed.seedlabel === 'string' && seed.seedlabel.length > 0) {
+        if (seed.status === 'Active') {        
+          getPrinterModels();
+        }else{
+        seedLabelTip('The seedlabel on this computer has expired. Please reinstall the system before running this program.');
+      }
       }else{
-        seedLabelTip();
+        seedLabelTip('Failed to obtain SeedLabel; installation is not possible.');
       }
       appContext.setComputerInfo({
         name: computerInfo.name,
-        seed: seed,
+        seed: seed.seedlabel,
         oa:  oaServer,
         ip: computerInfo.ip,
       });
     } catch (error) {
-      seedLabelTip();
+      seedLabelTip('Failed to obtain SeedLabel; installation is not possible.');
     } 
   };
 
