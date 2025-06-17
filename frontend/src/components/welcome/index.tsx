@@ -91,7 +91,8 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
 
     // 使用上下文
     const appContext = useAppContext();
-    const { computerInfo ,server,port} = useAppContext();
+    // const { computerInfo ,server,port} = useAppContext();
+    const { computerInfo } = useAppContext();
 
     const reloadTip = () => {
       setIsLoading(false);
@@ -153,31 +154,31 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
   // 添加连接服务器的函数
   const connectToServer = async () => {
     // 检查 server 和 port 是否已输入
-    if (!server || !port) {
-      Modal.confirm({
-        title: 'Information',
-        icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
-        content: 'Please input the server and port.',
-        cancelText: 'Close',
-        centered: true,
+    // if (!server || !port) {
+    //   Modal.confirm({
+    //     title: 'Information',
+    //     icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+    //     content: 'Please input the server and port.',
+    //     cancelText: 'Close',
+    //     centered: true,
         
-        okButtonProps: {
-          style: { backgroundColor: '#0052cc',width: '90px' ,display: 'none'}
-        },
-        cancelButtonProps: {
-          style: { width: '90px' }
-        }
-      });
-      return;
-    }
+    //     okButtonProps: {
+    //       style: { backgroundColor: '#0052cc',width: '90px' ,display: 'none'}
+    //     },
+    //     cancelButtonProps: {
+    //       style: { width: '90px' }
+    //     }
+    //   });
+    //   return;
+    // }
 
     setIsLoading(true);
 
     try {
       // 初始化客户端连接
-      const info = await InitClient(server, port);
-      appContext.setServer(server);
-      appContext.setPort(port);
+      const info = await InitClient('','');
+      // appContext.setServer(server);
+      // appContext.setPort(port);
       
       getOAServer();
       
@@ -283,7 +284,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       <span className={styles.title} >Deploy Tool for</span>
       <span className={styles.subtitle} >Windows</span>
       
-      <div className={styles.inputContainer}>
+      {/* <div className={styles.inputContainer}>
         <div className={styles.inputGroup}>
           <span className={styles.inputLabel}>Server:</span>
           <Input 
@@ -304,7 +305,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
             disabled={connected}
           />
         </div>
-      </div>
+      </div> */}
       <Text className={styles.connectingText}>
         {isLoading ? "Connecting to the server, please wait..." : (connected ? `Connected successfully` : "")}
       </Text>
