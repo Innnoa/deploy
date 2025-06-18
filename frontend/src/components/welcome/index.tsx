@@ -221,7 +221,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         seedLabelTip('The seedlabel on this computer has expired. Please reinstall the system before running this program.');
       }
       }else{
-        seedLabelTip('Failed to obtain SeedLabel; installation is not possible.');
+        seedLabelTip('Failed to obtain seedlabel; installation is not possible.');
       }
       appContext.setComputerInfo({
         name: computerInfo.name,
@@ -230,7 +230,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         ip: computerInfo.ip,
       });
     } catch (error) {
-      seedLabelTip('Failed to obtain SeedLabel; installation is not possible.');
+      seedLabelTip('Failed to obtain seedlabel; installation is not possible.');
     } 
   };
 

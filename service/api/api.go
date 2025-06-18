@@ -629,13 +629,9 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 }
 
 func GetSeedLabel(kbcode string) common.SeedLabelInfo {
-	localSeed := common.GetSeed()
-
 	common.AppLogger.Info("get seedlabel from kbcode")
 
 	var seedlabel common.SeedLabelInfo
-	seedlabel.SeedLabel = localSeed
-	seedlabel.Status = "Active"
 
 	var request GetSeedLabelRequest
 	request.KBCode = kbcode
@@ -668,13 +664,8 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 		return seedlabel
 	}
 
-	if result.Data.SeedLabel == "" {
-		result.Data.SeedLabel = localSeed
-	}
+	seedlabel = result.Data
+	common.CurrentComputerInfo.Seed = result.Data.SeedLabel
 
-	if localSeed != result.Data.SeedLabel {
-		//update local seed
-		common.UpdateLocalSeed(result.Data.SeedLabel)
-	}
-	return result.Data
+	return seedlabel
 }
