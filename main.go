@@ -2,7 +2,6 @@ package main
 
 import (
 	"embed"
-	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -50,9 +49,22 @@ func main() {
 
 	common.AppLogger.Info(fmt.Sprintf("Current version is: %s", Version))
 
-	devMode := flag.Bool("dev", false, "Enable development mode")
-	flag.Parse()
-	common.CheckAdmin = !*devMode
+	args := os.Args[1:] // 忽略第一个参数（程序路径）
+	isDebug := false
+	isRestart := false
+	for _, arg := range args {
+		if arg == "-debug" {
+			isDebug = true
+		} else if arg == "-restart" {
+			isRestart = true
+		}
+	}
+	common.CheckAdmin = !isDebug
+
+	startPage := ""
+	if isRestart {
+		startPage = "deploy"
+	}
 
 	// 1. 防止双重启动
 	if isAlreadyRunning() {
@@ -69,7 +81,7 @@ func main() {
 	defer listener.Close()
 
 	// Create an instance of the app structure
-	app := NewApp()
+	app := NewApp(startPage)
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:         "Deploy",

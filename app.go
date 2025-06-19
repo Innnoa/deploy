@@ -8,12 +8,18 @@ import (
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx       context.Context
+	startPage string
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
-	return &App{}
+func NewApp(page string) *App {
+	return &App{startPage: page}
+}
+
+// 供前端调用的方法
+func (a *App) GetStartPage() string {
+	return a.startPage
 }
 
 // startup is called when the app starts. The context is saved

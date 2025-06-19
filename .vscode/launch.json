@@ -6,9 +6,7 @@
       "type": "go",
       "request": "launch",
       "mode": "exec",
-      "args": [
-        "-dev=true"
-      ],
+      "args": ["-debug"],
       "program": "${workspaceFolder}/build/bin/recovery-unit-deploy.exe",
       "preLaunchTask": "build",
       "cwd": "${workspaceFolder}",
