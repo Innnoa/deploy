@@ -95,8 +95,6 @@ const useStyles = createStyles(({ css }) => ({
   `
 }));
 
-
-
 const Info: React.FC = () => {
   const { styles } = useStyles();
   const { computerInfo } = useAppContext();
@@ -112,8 +110,8 @@ const Info: React.FC = () => {
         const info = await GetComputerInfo();
          appContext.setComputerInfo({
           name: info.name,
-          seed: '-',
-          oa:  '-',
+          seed: info.seed === '' ? '-' : info.seed,
+          oa: info.oa === '' ? '-' : info.oa,
           ip: info.ip
         });
       } catch (error) {
@@ -155,8 +153,7 @@ const Info: React.FC = () => {
 
     fetchIsAdmin();
     
-  }, []);
-  
+  }, []);  
 
   return (
     <div className={styles.infoContainer}>

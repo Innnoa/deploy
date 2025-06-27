@@ -12,9 +12,11 @@ const App: React.FC = () => {
     //0: welcome, 1: configuration, 2: deploy
     // 根据URL参数初始化状态
     const [showComponentsPage, setShowComponentsPage] = useState(0);
+    const [startPage, setStartPage] = useState("")
 
     const getStartPage = async () => {
         const page = await GetStartPage();
+        setStartPage(page)
         if (page === 'deploy') {
             setShowComponentsPage(2)
         }
@@ -35,7 +37,7 @@ const App: React.FC = () => {
     return (
         <AppProvider>
             <div id="App" style={{ display: 'flex', width: '100%', height: '100vh' }}>
-                <Info />
+                <Info/>
                 {showComponentsPage === 0 && (
                     <Welcome onStartClick={showConfigurationPage} />
                 )}
@@ -43,7 +45,7 @@ const App: React.FC = () => {
                     <Configuration onBack={showWelcomePage} onSwitchToDeploy={showDeployPage}/>
                 </div>
                 {showComponentsPage === 2 && (
-                    <Deploy onDeployBack={showConfigurationPage}/>
+                    <Deploy onDeployBack={showConfigurationPage} startPage={startPage}/>
                 )}
             </div>
         </AppProvider>

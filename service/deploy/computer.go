@@ -44,17 +44,21 @@ func getIP() string {
 }
 
 func (c *Deploy) GetComputerInfo() common.ComputerInfo {
-	var info common.ComputerInfo
+	if common.Restart {
+		// getUploadInfo()
+	} else {
+		var info common.ComputerInfo
 
-	name := getComputerName()
+		name := getComputerName()
 
-	ip := getIP()
+		ip := getIP()
 
-	info.Name = name
-	info.IP = ip
+		info.Name = name
+		info.IP = ip
 
-	common.CurrentComputerInfo = info
+		common.CurrentComputerInfo = info
 
-	getUploadInfo()
+	}
+
 	return common.CurrentComputerInfo
 }

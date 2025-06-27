@@ -54,6 +54,7 @@ type PackageInfo struct {
 	Error     string `json:"error"`
 	PolNo     string `json:"pol"`
 	IP        string `json:"ip"`
+	Reboot    string `json:"reboot"`
 }
 
 type Status int
@@ -107,4 +108,10 @@ type SeedLabelInfo struct {
 	Id        string `json:"id"`
 	SeedLabel string `json:"seedlabel"`
 	Status    string `json:"status"`
+}
+
+type TempInfo struct {
+	Packages []PackageInfo `json:"packages"`
+	Server   OAServer      `json:"server"`
+	Computer ComputerInfo  `json:"computer"`
 }

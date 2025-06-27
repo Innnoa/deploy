@@ -177,7 +177,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
 
     try {
       // 初始化客户端连接
-      const info = await InitClient('','');
+      const info = await InitClient();
       // appContext.setServer(server);
       // appContext.setPort(port);
       

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"recovery-unit-deploy/service/common"
 	"recovery-unit-deploy/service/deploy"
 
@@ -49,6 +50,10 @@ func main() {
 
 	common.AppLogger.Info(fmt.Sprintf("Current version is: %s", Version))
 
+	common.AppLogger.Info(fmt.Sprintf("os.Args[0]: %s", os.Args[0]))
+
+	dir := filepath.Dir(os.Args[0])
+
 	args := os.Args[1:] // 忽略第一个参数（程序路径）
 	isDebug := false
 	isRestart := false
@@ -57,6 +62,8 @@ func main() {
 			isDebug = true
 		} else if arg == "-restart" {
 			isRestart = true
+			common.Restart = isRestart
+			deploy.DeleteScheduledTask("Deploy")
 		}
 	}
 	common.CheckAdmin = !isDebug
@@ -82,6 +89,18 @@ func main() {
 
 	// Create an instance of the app structure
 	app := NewApp(startPage)
+
+	deploy := &deploy.Deploy{}
+
+	if isRestart {
+		deploy.InitClient()
+
+		path := filepath.Join(dir, "temp.json")
+		deploy.LoadTemporaryInfo(path)
+		if err := os.Remove(path); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", path, err))
+		}
+	}
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:         "Deploy",
@@ -97,7 +116,7 @@ func main() {
 		LogLevel:           logger.TRACE,
 		LogLevelProduction: logger.TRACE,
 		Bind: []interface{}{
-			app, &deploy.Deploy{}},
+			app, deploy},
 	})
 
 	if err != nil {

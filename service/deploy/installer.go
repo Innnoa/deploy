@@ -1,8 +1,7 @@
 package deploy
 
 import (
-	"bytes"
-	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -12,81 +11,7 @@ import (
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 	"strings"
-	"time"
-
-	"golang.org/x/text/encoding/simplifiedchinese"
 )
-
-type Charset string
-
-const (
-	UTF8    Charset = "UTF-8"
-	GB18030 Charset = "GB18030" // Windows 中文编码
-)
-
-func ConvertByte2String(byteData []byte, charset Charset) string {
-	switch charset {
-	case GB18030:
-		decodeBytes, _ := simplifiedchinese.GB18030.NewDecoder().Bytes(byteData)
-		return string(decodeBytes)
-	default:
-		return string(byteData)
-	}
-}
-
-func runScriptWithArgs(scriptPath string, args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-	defer cancel()
-
-	var cmd *exec.Cmd
-	if len(args) == 6 {
-		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3], args[4], args[5])
-	} else if len(args) == 7 {
-		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
-	} else if len(args) == 4 {
-		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3])
-	} else if len(args) == 2 {
-		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1])
-	}
-
-	setHideWindow(cmd)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	output := ConvertByte2String(stdout.Bytes(), GB18030)
-	errMsg := ConvertByte2String(stderr.Bytes(), GB18030)
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("%s失败，退出码: %d\n错误输出: %s", scriptPath, exitErr.ExitCode(), errMsg)
-		}
-		return "", fmt.Errorf("启动%s失败: %v", scriptPath, err)
-	}
-	return output, nil
-}
-
-func runScript(scriptPath string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "cmd", "/C", scriptPath)
-	setHideWindow(cmd)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	output := ConvertByte2String(stdout.Bytes(), GB18030)
-	errMsg := ConvertByte2String(stderr.Bytes(), GB18030)
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", fmt.Errorf("%s失败，退出码: %d\n错误输出: %s", scriptPath, exitErr.ExitCode(), errMsg)
-		}
-		return "", fmt.Errorf("启动%s失败: %v", scriptPath, err)
-	}
-	return output, nil
-}
 
 func CreateFileWithAutoDirs(filePath string) error {
 	// 输入验证
@@ -138,6 +63,9 @@ func uploadInstallInfo() error {
 }
 
 func (p *Deploy) DoInstall() {
+	getUploadInfo()
+	api.UploadPCInfo(common.DetailPCInfo)
+
 	err := uploadInstallInfo()
 	if err != nil {
 		setAllStatusFail()
@@ -145,33 +73,11 @@ func (p *Deploy) DoInstall() {
 	}
 
 	// 配置参数
-	server := ""
-	if common.CurrentOA.IP != "" {
-		server = common.CurrentOA.IP
-	} else {
-		server = common.CurrentOA.ServerName
-	}
-	username := common.CurrentOA.UserName //get from server
-	encryptedPassword := common.CurrentOA.Password
-	password := common.Decode(encryptedPassword) //get from server
-
-	exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
-
-	// 1️⃣ 挂载远程共享目录到本地临时路径（Windows）
-	tempMount := "Z:"                             // 临时驱动器盘符
-	remotePath := "\\\\" + server + "\\" + "seed" // 远程共享路径
-	cmdMount := fmt.Sprintf(
-		"net use %s %s /user:%s %s",
-		tempMount, remotePath, username, password,
-	)
-
-	if output, err := exec.Command("cmd", "/C", cmdMount).CombinedOutput(); err != nil {
-		common.AppLogger.Error(fmt.Sprintf("挂载失败: %v\n output: %s\n", err, ConvertByte2String(output, GB18030)))
-		setAllStatusFail()
+	server, tempMount, remotePath, ret := mount()
+	if !ret {
+		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 		return
 	}
-
-	common.AppLogger.Info("挂载成功")
 
 	root := "pcms"
 	deploy := "deploy"
@@ -197,7 +103,7 @@ func (p *Deploy) DoInstall() {
 		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
 
 		if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
-			common.AppLogger.Error(fmt.Sprintf("%s 拷贝失败: %v\n输出: %s", cmdCopy, err, ConvertByte2String(output, GB18030)))
+			common.AppLogger.Error(fmt.Sprintf("%s 拷贝失败: %v\n输出: %s", cmdCopy, err, common.DecodeByLocale(output)))
 			setAllStatusFail()
 			return
 		}
@@ -205,50 +111,104 @@ func (p *Deploy) DoInstall() {
 		common.AppLogger.Info(fmt.Sprintf("文件 %s 拷贝成功", path.Join(root, deploy, bat)))
 	}
 
+	installPackages(target, server)
+}
+
+func mount() (string, string, string, bool) {
+	server := ""
+	if common.CurrentOA.IP != "" {
+		server = common.CurrentOA.IP
+	} else {
+		server = common.CurrentOA.ServerName
+	}
+	username := common.CurrentOA.UserName //get from server
+	encryptedPassword := common.CurrentOA.Password
+	password := common.Decode(encryptedPassword) //get from server
+
+	exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
+
+	// 1️⃣ 挂载远程共享目录到本地临时路径（Windows）
+	tempMount := "Z:"                             // 临时驱动器盘符
+	remotePath := "\\\\" + server + "\\" + "seed" // 远程共享路径
+	cmdMount := fmt.Sprintf(
+		"net use %s %s /user:%s %s",
+		tempMount, remotePath, username, password,
+	)
+
+	if output, err := exec.Command("cmd", "/C", cmdMount).CombinedOutput(); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("挂载失败: %v\n output: %s\n", err, common.DecodeByLocale(output)))
+		setAllStatusFail()
+		return "", "", "", false
+	}
+
+	common.AppLogger.Info("挂载成功")
+	return server, tempMount, remotePath, true
+}
+
+func (p *Deploy) InstallAfterReboot() {
+	server, _, _, ret := mount()
+	if !ret {
+		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+		return
+	}
+
+	target := "C:/Temp/tool"
+
+	installPackages(target, server)
+
+	err := deleteTempFiles("C:\\Temp\\tool")
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
+	}
+
+}
+
+func installPackages(target string, server string) {
 	for i := range installedPackages {
+		if installedPackages[i].Status == common.Completed.String() ||
+			installedPackages[i].Status == common.Failed.String() {
+			continue
+		}
+
 		var app common.AppId
 		app.ID = installedPackages[i].ID
 		api.StartInstall(app)
-
 		installedPackages[i].Status = common.Running.String()
 
-		// remoteFile := path.Join(installedPackages[i].Path, installedPackages[i].WinFile)
-		// localPath := path.Join(target, installedPackages[i].WinFile)
+		if strings.TrimSpace(installedPackages[i].AppName) == "Restart Machine" {
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
+			rebootForInstall()
 
-		// // 执行拷贝
-		// if err := copyFromSMB(rootShare, remoteFile, localPath); err != nil {
-		// 	common.AppLogger.Error(fmt.Sprintln("操作失败:", err))
-		// 	installedPackages[i].Status = common.Failed.String()
-		// 	installedPackages[i].Error = "Copy file from OA Server failed."
-		// 	api.InstallationFailed(app)
-		// 	continue
-		// } else {
-		// 	common.AppLogger.Info(fmt.Sprintln("文件成功拷贝至:", localPath))
-		// }
+			return
+		}
 
 		beforebat := ""
 		beforebatouput := ""
+		var err error
 		shortSeed := common.CurrentComputerInfo.Seed[0:4]
 		longSeed := common.CurrentComputerInfo.Seed
 		switch strings.ToUpper(installedPackages[i].AppType) {
 		case "APP":
 			beforebat = "CTALAN.bat"
-			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
 		case "SECURITYPATCH":
 			beforebat = installedPackages[i].WinFile
-			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server)
 		case "OTHERS":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+		case "Task":
+			beforebat = "OTHERS.bat"
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
 		case "LOCAL":
 			beforebat = "Printer.bat"
-			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed)
 		case "NETWORK":
 			beforebat = "PrintQ.bat"
-			beforebatouput, err = runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP)
 		}
 
-		// beforebatouput, err := runScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("错误:", err))
 			installedPackages[i].Status = common.Failed.String()
@@ -260,7 +220,7 @@ func (p *Deploy) DoInstall() {
 
 		// 执行第二个cmd文件
 		localCmd := path.Join("C:/Temp/tool", "JOB.CMD")
-		cmdOutput, err := runScript(localCmd)
+		cmdOutput, err := common.RunScript(localCmd)
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("JOB.CMD 执行错误:", err))
 			installedPackages[i].Status = common.Failed.String()
@@ -276,17 +236,9 @@ func (p *Deploy) DoInstall() {
 		installedPackages[i].Status = common.Completed.String()
 
 		api.InstallationSuccess(app)
+
+		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 	}
-
-	err = deleteTempFiles("C:\\Temp\\tool")
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
-	}
-
-	getUploadInfo()
-	api.UploadPCInfo(common.DetailPCInfo)
-
-	defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
 }
 
 func setAllStatusFail() {
@@ -327,13 +279,57 @@ func deleteTempFiles(dir string) error {
 
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
 	common.AppLogger.Info("GetInstallStatus")
-	return installedPackages
+
+	uiShow := getInstallPackages()
+	return uiShow
 }
 
 func (p *Deploy) Reboot() {
-	// reboot()
+	reboot()
 }
 
-func (p *Deploy) SaveTemporaryInfo() {
+func saveTemporaryInfo() {
+	var tempInfo common.TempInfo
+	tempInfo.Packages = append(tempInfo.Packages, installedPackages...)
+	tempInfo.Server = common.CurrentOA
+	tempInfo.Computer = common.CurrentComputerInfo
 
+	// 序列化为JSON
+	jsonData, err := json.Marshal(tempInfo)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("序列化安装包列表失败：%v", err))
+	}
+
+	// 写入文件（0644权限：用户读写，组和其他读）
+	err = os.WriteFile("temp.json", jsonData, 0644)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("保存安装包列表失败：%v", err))
+	}
+}
+
+func (p *Deploy) LoadTemporaryInfo(path string) {
+	common.AppLogger.Info("start LoadTemporaryInfo")
+	file, err := os.Open(path)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("文件 %s 打开失败: %v", path, err))
+		return
+	}
+	defer file.Close() // 确保关闭文件
+
+	var tempInfo common.TempInfo
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&tempInfo); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return
+	}
+
+	installedPackages = append(installedPackages, tempInfo.Packages...)
+	common.CurrentOA = tempInfo.Server
+	common.CurrentComputerInfo = tempInfo.Computer
+}
+
+func rebootForInstall() {
+	saveTemporaryInfo()
+	createScheduledTask("Deploy", []string{"-restart"})
+	reboot()
 }

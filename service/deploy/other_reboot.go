@@ -2,9 +2,17 @@
 
 package deploy
 
-import "os/exec"
+import (
+	"os/exec"
+)
 
 func reboot() {
 	cmd := exec.Command("shutdown", "-r", "now")
 	_ = cmd.Run()
+}
+
+func createScheduledTask(taskName string, args []string) {
+}
+
+func DeleteScheduledTask(taskName string) {
 }

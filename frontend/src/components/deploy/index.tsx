@@ -2,7 +2,7 @@ import React, { useState ,useEffect} from 'react';
 import { Table, Button, Progress, Typography, Modal ,Tooltip} from 'antd';
 import { ExclamationCircleFilled,CheckCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
-import {GetInstallPackages,DoInstall,GetInstallStatus} from "../../../wailsjs/go/deploy/Deploy";
+import {GetInstallPackages,DoInstall,GetInstallStatus, Reboot, InstallAfterReboot, InitClient} from "../../../wailsjs/go/deploy/Deploy";
 
 const { Text } = Typography;
 
@@ -175,10 +175,11 @@ const columns = [
     
   interface DeployProps {
     onDeployBack: () => void;
+    startPage: string;
   }
 
   //退出程序
-  const handleCancel = () => {
+  const handleCancel = (finished:boolean) => {
     Modal.confirm({
       title: 'Confirm Exit',
       icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
@@ -193,12 +194,17 @@ const columns = [
         style: { width: '90px' }
       },
       onOk: () => {
+        if (finished == true) {
+          console.log("exit app, reboot")
+          Reboot();
+        }
+
         (window as any).runtime?.Quit();
       }
     });
   };
 
-const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
+const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
   const { styles } = useStyles();
   const [allData, setAllData] = useState<any[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -273,8 +279,21 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
   };
 
   useEffect(() => {
-    
+
     getInstallPackages();
+
+    if (startPage === 'deploy') {
+      console.log('InstallAfterReboot')
+      setIsRunning(true);
+      // 暂不处理错误返回值 --------------
+      if (!intervalRef.current) {
+        intervalRef.current = window.setInterval(() => {
+          getInstallStatus();
+        }, 1000); 
+      }
+      InstallAfterReboot();
+    }
+    
   }, []);
 
   // Run按钮点击事件
@@ -337,7 +356,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack }) => {
           style: { width: '90px' }
         },
         onOk: () => {
-          handleCancel();
+          handleCancel(true);
         }
       });
 
@@ -393,7 +412,7 @@ return (
           <Button onClick={onDeployBack}
             disabled={isRunning || isDeployFinished}
             className={styles.backButton}>Back</Button>
-          <Button danger onClick={handleCancel}
+          <Button danger onClick={()=>handleCancel(isDeployFinished)}
             className={styles.backButton}>
             {isDeployFinished ? 'Close' : 'Cancel'}</Button>
           <Button type="primary" 

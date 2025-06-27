@@ -118,6 +118,16 @@ type GetSeedLabelResponse struct {
 	Data common.SeedLabelInfo `json:"data"`
 }
 
+type GetSeedTasksRequest struct {
+	PublicRequest
+	Seed string `json:"seedlabel"`
+}
+
+type GetSeedTasksResponse struct {
+	PublicResponse
+	Data []common.PackageInfo `json:"data"`
+}
+
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
@@ -138,12 +148,20 @@ func NewAPIClient(baseURL string) *APIClient {
 	}
 }
 
+// 修改后的CallAPI方法
 func (c *APIClient) CallAPI(
 	method string,
 	endpoint string,
 	body interface{},
+	pathParams map[string]interface{},
 	queryParams map[string]string,
 ) ([]byte, int, error) {
+	// 替换路径参数
+	for key, value := range pathParams {
+		placeholder := "{" + key + "}"
+		endpoint = strings.Replace(endpoint, placeholder, fmt.Sprintf("%v", value), -1)
+	}
+
 	// 构建完整URL
 	u, err := url.Parse(c.BaseURL + endpoint)
 	if err != nil {
@@ -219,7 +237,7 @@ func GetOAServer(ip string) string {
 
 	m["signature"] = public.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getOAServer", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getOAServer", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -257,7 +275,7 @@ func GetPrinterModels() []common.PrinterModel {
 
 	m["signature"] = public.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getPrinterBrands", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getPrinterBrands", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -298,7 +316,7 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByBrand", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByBrand", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -338,7 +356,7 @@ func GetNetworkPinterList(keyword string) []common.PrinterWithPackage {
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getNetworkPrinters", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getNetworkPrinters", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -382,7 +400,7 @@ func GetAllPackages(pol string, seed string) []common.PackageInfo {
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getInstallableApps", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getInstallableApps", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -425,7 +443,7 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByIds", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByIds", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -460,7 +478,7 @@ func UploadInstallInfo(info common.InstallInfo) error {
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", info, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", info, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -496,7 +514,7 @@ func StartInstall(id common.AppId) {
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", id, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", id, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -531,7 +549,7 @@ func InstallationSuccess(id common.AppId) {
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", id, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", id, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -566,7 +584,7 @@ func InstallationFailed(id common.AppId) {
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", id, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", id, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -603,7 +621,7 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadPcInfo", info, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadPcInfo", info, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -646,7 +664,7 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedInfoByKb", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedInfoByKb", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -666,6 +684,49 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 
 	seedlabel = result.Data
 	common.CurrentComputerInfo.Seed = result.Data.SeedLabel
+	common.CurrentSeed = result.Data
 
 	return seedlabel
+}
+
+func GetSeedTasks(seed string) []common.PackageInfo {
+	common.AppLogger.Info("get tasks from seedlabel")
+
+	var tasks []common.PackageInfo
+
+	var request GetSeedTasksRequest
+	request.Seed = seed
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+
+	request.Signature = generateSignature(http.MethodGet, nil, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getTaskApps", nil, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return tasks
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return tasks
+	}
+
+	var result GetSeedTasksResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return tasks
+	}
+
+	tasks = append(tasks, result.Data...)
+
+	return tasks
 }

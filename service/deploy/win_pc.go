@@ -218,7 +218,7 @@ func getDiskInfo() []DiskInfo {
 func getLastKBCode() string {
 	var kbList []string
 	cmd := exec.Command("systeminfo")
-	setHideWindow(cmd)
+	common.SetHideWindow(cmd)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
