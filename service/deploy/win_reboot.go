@@ -29,7 +29,7 @@ func createScheduledTask(taskName string, args []string) {
 	exePath, _ := os.Executable()
 	cmd := fmt.Sprintf(`"%s" %s`, exePath, strings.Join(args, " "))
 	taskCmd := fmt.Sprintf(
-		`schtasks /create /tn "%s" /tr "%s" /sc ONSTART /RL HIGHEST /delay 0000:30 /f`,
+		`schtasks /create /tn "%s" /tr "%s" /sc ONLOGON /RL HIGHEST /delay 0000:30 /f`,
 		taskName, cmd,
 	)
 
