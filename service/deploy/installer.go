@@ -220,19 +220,22 @@ func installPackages(target string, server string) {
 
 		// 执行第二个cmd文件
 		localCmd := path.Join("C:/Temp/tool", "JOB.CMD")
-		cmdOutput, err := common.RunScript(localCmd)
-		if err != nil {
-			common.AppLogger.Error(fmt.Sprintln("JOB.CMD 执行错误:", err))
-			installedPackages[i].Status = common.Failed.String()
-			installedPackages[i].Error = err.Error()
-			api.InstallationFailed(app)
+		if common.FileExists(localCmd) {
+			cmdOutput, err := common.RunScript(localCmd)
+			if err != nil {
+				common.AppLogger.Error(fmt.Sprintln("JOB.CMD 执行错误:", err))
+				installedPackages[i].Status = common.Failed.String()
+				installedPackages[i].Error = err.Error()
+				api.InstallationFailed(app)
+				deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
+				continue
+			} else {
+				common.AppLogger.Info(fmt.Sprintln("Cmd输出:", cmdOutput))
+			}
+
 			deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
-			continue
-		} else {
-			common.AppLogger.Info(fmt.Sprintln("Cmd输出:", cmdOutput))
 		}
 
-		deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
 		installedPackages[i].Status = common.Completed.String()
 
 		api.InstallationSuccess(app)

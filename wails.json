@@ -2,8 +2,8 @@
   "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "Deployment tool",      
   "info": {     
-    "productVersion": "0.8.0.2506170",       
-    "fileVersion": "0.8.0.5",           
+    "productVersion": "0.8.0.2506300",       
+    "fileVersion": "0.8.0.6",           
     "copyright": "Copyright © 2025",
     "productName": "Deploy"
   },
