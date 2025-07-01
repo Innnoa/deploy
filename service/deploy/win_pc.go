@@ -67,6 +67,7 @@ func getUploadInfo() common.DetailComputerInfo {
 	common.DetailPCInfo.PolNo = common.CurrentComputerInfo.Name
 	common.DetailPCInfo.IP = common.CurrentComputerInfo.IP
 	common.DetailPCInfo.Seedlabel = common.CurrentComputerInfo.Seed
+	common.DetailPCInfo.SP = common.CurrentComputerInfo.Seed[len(common.CurrentComputerInfo.Seed)-3:]
 
 	disks := getDiskInfo()
 	common.DetailPCInfo.NumOfDrive = fmt.Sprintf("%d", len(disks))
