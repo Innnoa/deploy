@@ -181,6 +181,12 @@ func installPackages(target string, server string) {
 			rebootForInstall()
 
 			return
+		} else if strings.TrimSpace(installedPackages[i].AppName) == "Time Sync" {
+			syncTime()
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
+
+			return
 		}
 
 		beforebat := ""
@@ -191,19 +197,19 @@ func installPackages(target string, server string) {
 		switch strings.ToUpper(installedPackages[i].AppType) {
 		case "APP":
 			beforebat = "CTALAN.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, "", installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "SECURITYPATCH":
 			beforebat = installedPackages[i].WinFile
 			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server)
 		case "OTHERS":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
 		case "Task":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].AppName)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
 		case "LOCAL":
 			beforebat = "Printer.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].Path, installedPackages[i].WinFile, shortSeed)
 		case "NETWORK":
 			beforebat = "PrintQ.bat"
 			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP)
