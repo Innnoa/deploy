@@ -3,7 +3,6 @@ package deploy
 import (
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
-	"strings"
 )
 
 var localPrinterDriverList []common.PackageInfo
@@ -50,13 +49,13 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 		installedPackages = append(installedPackages, tasks...)
 	}
 
-	uiShow := filter(installedPackages, func(p common.PackageInfo) bool { return strings.TrimSpace(p.AppName) != "Restart Machine" })
+	// uiShow := filter(installedPackages, func(p common.PackageInfo) bool { return strings.TrimSpace(p.AppName) != "Restart Machine" })
 
-	return uiShow
+	return installedPackages
 }
 
 func getInstallPackages() []common.PackageInfo {
-	uiShow := filter(installedPackages, func(p common.PackageInfo) bool { return strings.TrimSpace(p.AppName) != "Restart Machine" })
+	// uiShow := filter(installedPackages, func(p common.PackageInfo) bool { return strings.TrimSpace(p.AppName) != "Restart Machine" })
 
-	return uiShow
+	return installedPackages
 }
