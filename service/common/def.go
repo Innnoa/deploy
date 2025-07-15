@@ -6,6 +6,7 @@ type OAServer struct {
 	IP         string `json:"ip"`
 	UserName   string `json:"username"`
 	Password   string `json:"password"`
+	RootPath   string `json:"rootPath"`
 }
 
 type PrinterModel struct {

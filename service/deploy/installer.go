@@ -128,8 +128,8 @@ func mount() (string, string, string, bool) {
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
 
 	// 1️⃣ 挂载远程共享目录到本地临时路径（Windows）
-	tempMount := "Z:"                             // 临时驱动器盘符
-	remotePath := "\\\\" + server + "\\" + "seed" // 远程共享路径
+	tempMount := "Z:"                                                // 临时驱动器盘符
+	remotePath := "\\\\" + server + "\\" + common.CurrentOA.RootPath // 远程共享路径
 	cmdMount := fmt.Sprintf(
 		"net use %s %s /user:%s %s",
 		tempMount, remotePath, username, password,
@@ -284,6 +284,15 @@ func deleteTempFiles(dir string) error {
 	}
 
 	return nil
+}
+
+func (p *Deploy) DeleteTempFiles() error {
+	err := deleteTempFiles("C:\\Temp\\tool")
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
+	}
+
+	return err
 }
 
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
