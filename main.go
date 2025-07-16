@@ -6,8 +6,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 	"recovery-unit-deploy/service/deploy"
+	"strconv"
+	"strings"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -22,6 +25,33 @@ var assets embed.FS
 const lockPort = 60629
 
 var Version = "unset" // 默认值
+var HasNewVersion = false
+
+func hasNewVersion() bool {
+	appInfo := api.GetAppVersionInfo("DEPLOY")
+
+	v1 := strings.Split(appInfo.Version, ".")
+	v2 := strings.Split(Version, ".")
+
+	maxLen := max(len(v1), len(v2))
+
+	for i := 0; i < maxLen; i++ {
+		num1, num2 := 0, 0
+		if i < len(v1) {
+			num1, _ = strconv.Atoi(v1[i]) // 忽略错误
+		}
+		if i < len(v2) {
+			num2, _ = strconv.Atoi(v2[i])
+		}
+
+		if num1 > num2 {
+			return true
+		} else if num1 < num2 {
+			return false
+		}
+	}
+	return false
+}
 
 // 检查应用是否已经运行
 func isAlreadyRunning() bool {
@@ -91,10 +121,13 @@ func main() {
 	app := NewApp(startPage)
 
 	deploy := &deploy.Deploy{}
+	deploy.InitClient()
+
+	if !isRestart && hasNewVersion() {
+		deploy.HasNewVersion = true
+	}
 
 	if isRestart {
-		deploy.InitClient()
-
 		path := filepath.Join(dir, "temp.json")
 		deploy.LoadTemporaryInfo(path)
 		if err := os.Remove(path); err != nil {

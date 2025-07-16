@@ -6,7 +6,7 @@ import computerImg from '../../assets/images/computer-img.png';
 import seedName from '../../assets/images/seed-name.png';
 import serverName from '../../assets/images/server-name.png';
 import ipName from '../../assets/images/ip-name.png';
-import {GetComputerInfo , IsAdmin} from "../../../wailsjs/go/deploy/Deploy";
+import {GetComputerInfo , IsAdmin, CheckNewVersion} from "../../../wailsjs/go/deploy/Deploy";
 import { useAppContext } from '../../context/AppContext';
 import { ExclamationCircleFilled} from '@ant-design/icons';
 
@@ -146,12 +146,40 @@ const Info: React.FC = () => {
                 (window as any).runtime?.Quit();
               }
             });
+          } else {
+            checkNewVersion();
           }
+
       } catch (error) {
       }
     };
 
+    const checkNewVersion = async () => {
+      const info = await CheckNewVersion();
+      if (info == true){
+        Modal.confirm({
+          title: 'Information',
+          icon: <ExclamationCircleFilled style={{ color: '#faad14' }} />,
+          content: 'There is a new version available, please use the new version.',
+          cancelText: 'Close',
+          centered: true,
+          
+          okButtonProps: {
+            style: { display: 'none'}
+          },
+          cancelButtonProps: {
+            style: { width: '90px' }
+          },
+          onCancel: () => {
+            (window as any).runtime?.Quit();
+          }
+        });
+      } 
+    };
+
     fetchIsAdmin();
+
+
     
   }, []);  
 

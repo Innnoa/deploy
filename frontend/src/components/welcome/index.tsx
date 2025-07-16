@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {InitClient,GetOAServer,GetSeedLabel,
+import {GetOAServer,GetSeedLabel,
         GetPrinterModels, GetNetworkPinterList
 } from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
@@ -177,7 +177,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
 
     try {
       // 初始化客户端连接
-      const info = await InitClient();
+      // const info = await InitClient();
       // appContext.setServer(server);
       // appContext.setPort(port);
       

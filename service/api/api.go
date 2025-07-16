@@ -128,6 +128,16 @@ type GetSeedTasksResponse struct {
 	Data []common.PackageInfo `json:"data"`
 }
 
+type GetAppVersionInfoRequest struct {
+	PublicRequest
+	Type string `json:"type"`
+}
+
+type GetAppVersionInfoResponse struct {
+	PackageResponse
+	Data common.AppVersionInfo `json:"data"`
+}
+
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
@@ -729,4 +739,43 @@ func GetSeedTasks(seed string) []common.PackageInfo {
 	tasks = append(tasks, result.Data...)
 
 	return tasks
+}
+
+func GetAppVersionInfo(t string) common.AppVersionInfo {
+	common.AppLogger.Info("get newest app verion info")
+
+	var appInfo common.AppVersionInfo
+	var request GetAppVersionInfoRequest
+	request.Type = t
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(http.MethodPost, t, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/version/info", t, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return appInfo
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return appInfo
+	}
+
+	var result GetAppVersionInfoResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return appInfo
+	}
+
+	appInfo = result.Data
+	return appInfo
 }

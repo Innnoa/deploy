@@ -116,3 +116,10 @@ type TempInfo struct {
 	Server   OAServer      `json:"server"`
 	Computer ComputerInfo  `json:"computer"`
 }
+
+type AppVersionInfo struct {
+	Version      string `json:"version"`
+	Type         string `json:"type"`
+	DownloadUrl  string `json:"downloadUrl"`
+	ReleaseNotes string `json:"releaseNotes"`
+}
