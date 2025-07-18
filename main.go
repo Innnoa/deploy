@@ -24,7 +24,7 @@ var assets embed.FS
 // lockPort 用于进程间通信的端口，应设为应用唯一的端口
 const lockPort = 60629
 
-var Version = "unset" // 默认值
+var Version = "1.0.0" // 默认值
 var HasNewVersion = false
 
 func hasNewVersion() bool {

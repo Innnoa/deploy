@@ -138,6 +138,16 @@ type GetAppVersionInfoResponse struct {
 	Data common.AppVersionInfo `json:"data"`
 }
 
+type CheckSeedLabelRequest struct {
+	PublicRequest
+	Info common.SeedTimeInfo
+}
+
+type CheckSeedLabelResponse struct {
+	PublicResponse
+	Data bool `json:"data"`
+}
+
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
@@ -778,4 +788,45 @@ func GetAppVersionInfo(t string) common.AppVersionInfo {
 
 	appInfo = result.Data
 	return appInfo
+}
+
+func CheckSeedLabel(seed string, modTime string, createTime string) bool {
+	common.AppLogger.Info("check seedlabel by created time and modified time")
+
+	var request CheckSeedLabelRequest
+	var seedTimeInfo common.SeedTimeInfo
+	seedTimeInfo.SeedLabel = seed
+	seedTimeInfo.CreateTime = createTime
+	seedTimeInfo.UpdateTime = modTime
+	request.Info = seedTimeInfo
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(http.MethodPost, seedTimeInfo, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/checkSeedFile", seedTimeInfo, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return false
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return false
+	}
+
+	var result CheckSeedLabelResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return false
+	}
+
+	return result.Data
 }

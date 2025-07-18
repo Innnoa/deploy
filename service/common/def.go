@@ -123,3 +123,9 @@ type AppVersionInfo struct {
 	DownloadUrl  string `json:"downloadUrl"`
 	ReleaseNotes string `json:"releaseNotes"`
 }
+
+type SeedTimeInfo struct {
+	CreateTime string `json:"createTime"`
+	UpdateTime string `json:"updateTime"`
+	SeedLabel  string `json:"seedlabel"`
+}

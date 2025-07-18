@@ -1,6 +1,8 @@
 package deploy
 
 import (
+	"fmt"
+	"log"
 	"net"
 	"os"
 	"recovery-unit-deploy/service/api"
@@ -9,8 +11,30 @@ import (
 
 func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
 	kbcode := getLastKBCode()
+	kbcode = "KB5039334"
 	seed := api.GetSeedLabel(kbcode)
 	return seed
+}
+
+func (c *Deploy) CheckSeedLabel() bool {
+	filename := fmt.Sprintf("C:\\%s.seedlabel.txt", common.CurrentSeed.SeedLabel)
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 修改时间（跨平台通用）
+	modTime := fileInfo.ModTime()
+
+	// 创建时间（按系统处理）
+	createTime := getCreationTime(fileInfo)
+
+	strModTime := modTime.Format("2006-01-02 15:04:05")
+	strCreateTime := createTime.Format("2006-01-02 15:04:05")
+	fmt.Printf("修改时间: %s\n", strModTime)
+	fmt.Printf("创建时间: %s\n", strCreateTime)
+
+	return api.CheckSeedLabel(common.CurrentSeed.SeedLabel, strCreateTime, strModTime)
 }
 
 func getComputerName() string {
