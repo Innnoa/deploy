@@ -3,10 +3,12 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"recovery-unit-deploy/service/common"
 	"strings"
 	"time"
@@ -115,7 +117,7 @@ type GetSeedLabelRequest struct {
 
 type GetSeedLabelResponse struct {
 	PublicResponse
-	Data common.SeedLabelInfo `json:"data"`
+	Data []common.SeedLabelInfo `json:"data"`
 }
 
 type GetSeedTasksRequest struct {
@@ -151,6 +153,9 @@ type CheckSeedLabelResponse struct {
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
+
+var ACCESS_KEY_RU string = "0efdba78bccf45f496c27e70a7442dd9"
+var ACCESS_SECRET_RU string = "jvOIJ/VTSZLPwgpEfOHdZWDBPNiz1xvv"
 
 type APIClient struct {
 	BaseURL    string
@@ -253,7 +258,7 @@ func GetOAServer(ip string) string {
 	request.PublicReq = public
 
 	m := structToMap(request)
-	public.Signature = generateSignature(http.MethodGet, nil, m)
+	public.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = public.Signature
 
@@ -291,7 +296,7 @@ func GetPrinterModels() []common.PrinterModel {
 	public.Timestamp = getCurrentTimestamp()
 
 	m := structToMap(public)
-	public.Signature = generateSignature(http.MethodGet, nil, m)
+	public.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = public.Signature
 
@@ -332,7 +337,7 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
@@ -372,7 +377,7 @@ func GetNetworkPinterList(keyword string) []common.PrinterWithPackage {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
@@ -416,7 +421,7 @@ func GetAllPackages(pol string, seed string) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
@@ -459,7 +464,7 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
@@ -493,7 +498,7 @@ func UploadInstallInfo(info common.InstallInfo) error {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, info, m)
+	public.Signature = generateSignature(http.MethodPost, info, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
@@ -529,7 +534,7 @@ func StartInstall(id common.AppId) {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, id, m)
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
@@ -564,7 +569,7 @@ func InstallationSuccess(id common.AppId) {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, id, m)
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
@@ -599,7 +604,7 @@ func InstallationFailed(id common.AppId) {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, id, m)
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
@@ -637,7 +642,7 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodPost, info, m)
+	request.Signature = generateSignature(http.MethodPost, info, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
@@ -680,7 +685,7 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
@@ -702,9 +707,17 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 		return seedlabel
 	}
 
-	seedlabel = result.Data
-	common.CurrentComputerInfo.Seed = result.Data.SeedLabel
-	common.CurrentSeed = result.Data
+	for _, sl := range result.Data {
+		filename := fmt.Sprintf("C:\\%s.seedlabel.txt", sl.SeedLabel)
+		_, err := os.Stat(filename)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+
+		seedlabel = sl
+		common.CurrentComputerInfo.Seed = sl.SeedLabel
+		common.CurrentSeed = sl
+	}
 
 	return seedlabel
 }
@@ -724,7 +737,7 @@ func GetSeedTasks(seed string) []common.PackageInfo {
 
 	m := structToMap(request)
 
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
@@ -759,16 +772,16 @@ func GetAppVersionInfo(t string) common.AppVersionInfo {
 	request.Type = t
 
 	var public PublicRequest
-	public.AccessKeyId = ACCESS_KEY
+	public.AccessKeyId = ACCESS_KEY_RU
 	public.Timestamp = getCurrentTimestamp()
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodPost, t, m)
+	request.Signature = generateSignature(http.MethodPost, t, ACCESS_SECRET_RU, m)
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/version/info", t, nil, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/ru/version/info", t, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -806,7 +819,7 @@ func CheckSeedLabel(seed string, modTime string, createTime string) bool {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodPost, seedTimeInfo, m)
+	request.Signature = generateSignature(http.MethodPost, seedTimeInfo, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 

@@ -139,7 +139,7 @@ func computeSignature(secret, stringToSign string) string {
 	return base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 }
 
-func generateSignature(method string, body interface{}, params map[string]string) string {
+func generateSignature(method string, body interface{}, key string, params map[string]string) string {
 	if body != nil {
 		// 序列化为JSON字节数组
 		jsonData, err := json.Marshal(body)
@@ -157,7 +157,7 @@ func generateSignature(method string, body interface{}, params map[string]string
 	stringToSign := buildStringToSign(method, canonicalQuery)
 
 	// 3. 计算签名
-	accessSecret := ACCESS_SECRET
+	accessSecret := key
 	signature := computeSignature(accessSecret+"&", stringToSign)
 	return signature
 }

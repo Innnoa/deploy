@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -11,6 +13,10 @@ import (
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 	"strings"
+	"time"
+
+	"golang.org/x/sys/windows/svc"
+	"golang.org/x/sys/windows/svc/mgr"
 )
 
 func CreateFileWithAutoDirs(filePath string) error {
@@ -128,8 +134,8 @@ func mount() (string, string, string, bool) {
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
 
 	// 1️⃣ 挂载远程共享目录到本地临时路径（Windows）
-	tempMount := "Z:"                                                // 临时驱动器盘符
-	remotePath := "\\\\" + server + "\\" + common.CurrentOA.RootPath // 远程共享路径
+	tempMount := "Z:"                             // 临时驱动器盘符
+	remotePath := "\\\\" + server + "\\" + "seed" // 远程共享路径
 	cmdMount := fmt.Sprintf(
 		"net use %s %s /user:%s %s",
 		tempMount, remotePath, username, password,
@@ -163,6 +169,180 @@ func (p *Deploy) InstallAfterReboot() {
 
 }
 
+func createService(scm *mgr.Mgr, name, binPath string) error {
+	// 配置服务参数
+	config := mgr.Config{
+		DisplayName: name,
+		StartType:   mgr.StartAutomatic, // 自动启动
+		Description: name,
+	}
+
+	// 创建服务
+	service, err := scm.CreateService(name, binPath, config)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("CreateService %s error: %v", name, err))
+		return err
+	}
+	service.Close()
+	common.AppLogger.Info(fmt.Sprintf("Service %s created", name))
+	return nil
+}
+
+// 检查服务是否存在并返回服务句柄
+func serviceExists(scm *mgr.Mgr, name string) (bool, *mgr.Service, error) {
+	service, err := scm.OpenService(name)
+	if err != nil {
+		// 错误码1060表示服务不存在（Windows系统错误码）
+		if err.Error() == "The specified service does not exist." {
+			return false, nil, nil
+		}
+		return false, nil, err
+	}
+	return true, service, nil
+}
+
+// 停止服务（若正在运行）
+func stopServiceIfRunning(service *mgr.Service) error {
+	status, err := service.Query()
+	if err != nil {
+		return err
+	}
+
+	// 仅当服务运行时才停止
+	if status.State == svc.Running {
+		_, err = service.Control(svc.Stop)
+		if err != nil {
+			return err
+		}
+		common.AppLogger.Info("服务已停止")
+	}
+	return nil
+}
+
+// 安全删除服务（包括停止和删除）
+func safeDeleteService(name string) error {
+	scm, err := mgr.Connect()
+	if err != nil {
+		return err
+	}
+	defer scm.Disconnect()
+
+	exists, service, err := serviceExists(scm, name)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		common.AppLogger.Info("服务不存在")
+		return nil
+	}
+	defer service.Close()
+
+	// 停止运行中的服务
+	if err := stopServiceIfRunning(service); err != nil {
+		return err
+	}
+
+	// 删除服务
+	if err := service.Delete(); err != nil {
+		return err
+	}
+
+	for i := 0; i < 10; i++ {
+		status, _ := service.Query()
+		if status.State == svc.Stopped {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	common.AppLogger.Info("服务已删除")
+	return nil
+}
+
+func createRUService(serviceName, binPath string) error {
+	scm, err := mgr.Connect()
+	if err != nil {
+		return err
+	}
+	defer scm.Disconnect()
+
+	// 创建新服务
+	if err := createService(scm, serviceName, binPath); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("Create error: %v", err))
+	}
+
+	return nil
+}
+
+func installRU() error {
+	ru := api.GetAppVersionInfo("RU")
+	url := ru.DownloadUrl
+	resp, err := http.Get(url)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("download ruservice failed:", err))
+		return err
+	}
+	defer resp.Body.Close() // 必须关闭响应体[1,3,6](@ref)
+
+	if resp.StatusCode != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintln("download ruservice failed: ", resp.Status))
+		return fmt.Errorf("download ruservice failed: %s", resp.Status)
+	}
+
+	src := "C:\\Temp\\Tool\\ruservice.exe"
+	outFile, err := os.Create(src)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("creat ruservice failed: ", err))
+		return err
+	}
+	defer outFile.Close()
+
+	_, err = io.Copy(outFile, resp.Body) // 流式复制避免内存溢出
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("save file failed: ", err))
+		return err
+	}
+
+	target := "C:\\Program Files\\RU\\ruservice.exe"
+	targetDir := filepath.Dir(target)
+	_, err = os.Stat(targetDir)
+
+	if os.IsNotExist(err) {
+		if err := os.MkdirAll(targetDir, 0755); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("create ru directory failed: %v", err))
+			return err
+		}
+	}
+
+	if err := safeDeleteService("ruservice"); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("操作失败: %v", err))
+	}
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("open ruservice src file failed: %v", err))
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(target)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("create ruservice targe file failed: %v", err))
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile) // 核心拷贝逻辑
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("copy ruservice targe file failed: %v", err))
+		return err
+	}
+
+	err = createRUService("RUService", target)
+
+	return err
+}
+
 func installPackages(target string, server string) {
 	for i := range installedPackages {
 		if installedPackages[i].Status == common.Completed.String() ||
@@ -186,7 +366,20 @@ func installPackages(target string, server string) {
 			installedPackages[i].Status = common.Completed.String()
 			api.InstallationSuccess(app)
 
-			return
+			continue
+		} else if strings.TrimSpace(installedPackages[i].AppName) == "RU Service" {
+			err0 := installRU()
+			if err0 != nil {
+				common.AppLogger.Error(fmt.Sprintln("错误:", err0))
+				installedPackages[i].Status = common.Failed.String()
+				installedPackages[i].Error = err0.Error()
+				api.InstallationFailed(app)
+			} else {
+				installedPackages[i].Status = common.Completed.String()
+				api.InstallationSuccess(app)
+			}
+
+			continue
 		}
 
 		beforebat := ""

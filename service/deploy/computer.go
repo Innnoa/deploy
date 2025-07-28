@@ -11,7 +11,7 @@ import (
 
 func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
 	kbcode := getLastKBCode()
-	kbcode = "KB5039334"
+	// kbcode = "KB5039334"
 	seed := api.GetSeedLabel(kbcode)
 	return seed
 }

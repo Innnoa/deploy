@@ -47,6 +47,9 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 
 		tasks := api.GetSeedTasks(common.CurrentSeed.SeedLabel)
 		installedPackages = append(installedPackages, tasks...)
+
+		ru := common.PackageInfo{AppName: "RU Service"}
+		installedPackages = append(installedPackages, ru)
 	}
 
 	// uiShow := filter(installedPackages, func(p common.PackageInfo) bool { return strings.TrimSpace(p.AppName) != "Restart Machine" })
