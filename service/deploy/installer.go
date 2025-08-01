@@ -168,12 +168,6 @@ func (p *Deploy) InstallAfterReboot() {
 	target := "C:/Temp/tool"
 
 	installPackages(target, server)
-
-	err := deleteTempFiles("C:\\Temp\\tool")
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
-	}
-
 }
 
 func createService(scm *mgr.Mgr, name, binPath string) error {
@@ -461,6 +455,11 @@ func installPackages(target string, server string) {
 		api.InstallationSuccess(app)
 
 		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+	}
+
+	err := deleteTempFiles("C:\\Temp\\tool")
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
 	}
 }
 
