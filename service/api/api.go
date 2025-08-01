@@ -150,6 +150,16 @@ type CheckSeedLabelResponse struct {
 	Data bool `json:"data"`
 }
 
+type GetCodesByGroupRequest struct {
+	PublicRequest
+	Group string `json:"group"`
+}
+
+type GetCodesByGroupResponse struct {
+	PublicResponse
+	Data []common.GroupCode `json:"data"`
+}
+
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
@@ -489,7 +499,7 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	return result.Data
 }
 
-func UploadInstallInfo(info common.InstallInfo) error {
+func UploadInstallInfo(info common.InstallInfo) (string, error) {
 	common.AppLogger.Info("upload install info.")
 
 	var public PublicRequest
@@ -507,25 +517,25 @@ func UploadInstallInfo(info common.InstallInfo) error {
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
-		return err
+		return "", err
 	}
 
 	if status != http.StatusOK {
 		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
-		return fmt.Errorf("业务错误: HTTP %d → %s", status, string(data))
+		return "", fmt.Errorf("业务错误: HTTP %d → %s", status, string(data))
 	}
 
 	var result UploadInstallInfoResponse
 	if err := json.Unmarshal(data, &result); err != nil {
 		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
-		return err
+		return "", err
 	}
 
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallResponse : %v", result))
-	return nil
+	return result.Data, nil
 }
 
-func StartInstall(id common.AppId) {
+func StartInstall(id common.AppStatus) {
 	common.AppLogger.Info("start install.")
 
 	var public PublicRequest
@@ -560,7 +570,7 @@ func StartInstall(id common.AppId) {
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
 
-func InstallationSuccess(id common.AppId) {
+func InstallationSuccess(id common.AppStatus) {
 	common.AppLogger.Info("install success.")
 
 	var public PublicRequest
@@ -595,7 +605,7 @@ func InstallationSuccess(id common.AppId) {
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
 
-func InstallationFailed(id common.AppId) {
+func InstallationFailed(id common.FailedAppStatus) {
 	common.AppLogger.Info("install failed.")
 
 	var public PublicRequest
@@ -839,6 +849,46 @@ func CheckSeedLabel(seed string, modTime string, createTime string) bool {
 	if err := json.Unmarshal(data, &result); err != nil {
 		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
 		return false
+	}
+
+	return result.Data
+}
+
+func GetCodesByGroup(group string) []common.GroupCode {
+	common.AppLogger.Info("get code from group")
+
+	var codes []common.GroupCode
+
+	var request GetCodesByGroupRequest
+	request.Group = group
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getCodesByGroup", nil, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return codes
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return codes
+	}
+
+	var result GetCodesByGroupResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return codes
 	}
 
 	return result.Data

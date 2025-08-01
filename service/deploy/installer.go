@@ -19,6 +19,8 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 )
 
+var mainTask = ""
+
 func CreateFileWithAutoDirs(filePath string) error {
 	// 输入验证
 	if len(filePath) == 0 {
@@ -51,7 +53,7 @@ func CreateFileWithAutoDirs(filePath string) error {
 	return nil
 }
 
-func uploadInstallInfo() error {
+func uploadInstallInfo() (string, error) {
 	var installInfo common.InstallInfo
 
 	pols := []string{common.CurrentComputerInfo.Name}
@@ -64,15 +66,16 @@ func uploadInstallInfo() error {
 	}
 	installInfo.AppIds = appids
 
-	err := api.UploadInstallInfo(installInfo)
-	return err
+	maintaskid, err := api.UploadInstallInfo(installInfo)
+	return maintaskid, err
 }
 
 func (p *Deploy) DoInstall() {
 	getUploadInfo()
 	api.UploadPCInfo(common.DetailPCInfo)
 
-	err := uploadInstallInfo()
+	maintaskid, err := uploadInstallInfo()
+	mainTask = maintaskid
 	if err != nil {
 		setAllStatusFail()
 		return
@@ -85,10 +88,15 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
-	root := "pcms"
-	deploy := "deploy"
-	target := "C:/Temp/tool"
+	paths := api.GetCodesByGroup("COMMON_BAT_PATH")
 
+	if len(paths) == 0 {
+		setAllStatusFail()
+		return
+	}
+
+	src := paths[0].Name
+	target := "C:/Temp/tool"
 	_, err = os.Stat(target)
 
 	if os.IsNotExist(err) {
@@ -97,15 +105,14 @@ func (p *Deploy) DoInstall() {
 			setAllStatusFail()
 			return
 		}
-
 	}
 
-	beforeBats := []string{"CTALAN.bat", "OTHERS.bat", "Printer.bat", "PrintQ.bat"}
+	beforeBats := api.GetCodesByGroup("COMMON_BAT")
 
 	for _, bat := range beforeBats {
 		//Copy bat file that will run first before running app bat
-		localPath := filepath.Join(target, bat)
-		source := filepath.Join(tempMount, filepath.Base(remotePath), root, deploy, bat)
+		localPath := filepath.Join(target, bat.Name)
+		source := filepath.Join(tempMount, filepath.Base(remotePath), src, bat.Name)
 		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
 
 		if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
@@ -114,7 +121,7 @@ func (p *Deploy) DoInstall() {
 			return
 		}
 
-		common.AppLogger.Info(fmt.Sprintf("文件 %s 拷贝成功", path.Join(root, deploy, bat)))
+		common.AppLogger.Info(fmt.Sprintf("文件 %s 拷贝成功", path.Join(src, bat.Name)))
 	}
 
 	installPackages(target, server)
@@ -134,8 +141,8 @@ func mount() (string, string, string, bool) {
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run() // 确保卸载
 
 	// 1️⃣ 挂载远程共享目录到本地临时路径（Windows）
-	tempMount := "Z:"                             // 临时驱动器盘符
-	remotePath := "\\\\" + server + "\\" + "seed" // 远程共享路径
+	tempMount := "Z:"                                                // 临时驱动器盘符
+	remotePath := "\\\\" + server + "\\" + common.CurrentOA.RootPath // 远程共享路径
 	cmdMount := fmt.Sprintf(
 		"net use %s %s /user:%s %s",
 		tempMount, remotePath, username, password,
@@ -350,8 +357,9 @@ func installPackages(target string, server string) {
 			continue
 		}
 
-		var app common.AppId
+		var app common.AppStatus
 		app.ID = installedPackages[i].ID
+		app.MainTask = mainTask
 		api.StartInstall(app)
 		installedPackages[i].Status = common.Running.String()
 
@@ -373,7 +381,11 @@ func installPackages(target string, server string) {
 				common.AppLogger.Error(fmt.Sprintln("错误:", err0))
 				installedPackages[i].Status = common.Failed.String()
 				installedPackages[i].Error = err0.Error()
-				api.InstallationFailed(app)
+				var failedapp common.FailedAppStatus
+				failedapp.ID = app.ID
+				failedapp.MainTask = app.MainTask
+				failedapp.Msg = installedPackages[i].Error
+				api.InstallationFailed(failedapp)
 			} else {
 				installedPackages[i].Status = common.Completed.String()
 				api.InstallationSuccess(app)
@@ -387,32 +399,36 @@ func installPackages(target string, server string) {
 		var err error
 		shortSeed := common.CurrentComputerInfo.Seed[0:4]
 		longSeed := common.CurrentComputerInfo.Seed
-		switch strings.ToUpper(installedPackages[i].AppType) {
-		case "APP":
+		switch installedPackages[i].AppType {
+		case "Force_App":
 			beforebat = "CTALAN.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, "", installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
-		case "SECURITYPATCH":
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
+		case "Security_Patch":
 			beforebat = installedPackages[i].WinFile
 			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server)
-		case "OTHERS":
+		case "Others":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
-		case "Task":
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
+		case "Seed_Tasks":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
 		case "LOCAL":
 			beforebat = "Printer.bat"
 			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].Path, installedPackages[i].WinFile, shortSeed)
 		case "NETWORK":
 			beforebat = "PrintQ.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, "", installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP)
 		}
 
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("错误:", err))
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = err.Error()
-			api.InstallationFailed(app)
+			var failedapp common.FailedAppStatus
+			failedapp.ID = app.ID
+			failedapp.MainTask = app.MainTask
+			failedapp.Msg = installedPackages[i].Error
+			api.InstallationFailed(failedapp)
 			continue
 		}
 		common.AppLogger.Info(fmt.Sprintln("Bat输出:", beforebatouput))
@@ -425,7 +441,12 @@ func installPackages(target string, server string) {
 				common.AppLogger.Error(fmt.Sprintln("JOB.CMD 执行错误:", err))
 				installedPackages[i].Status = common.Failed.String()
 				installedPackages[i].Error = err.Error()
-				api.InstallationFailed(app)
+
+				var failedapp common.FailedAppStatus
+				failedapp.ID = app.ID
+				failedapp.MainTask = app.MainTask
+				failedapp.Msg = installedPackages[i].Error
+				api.InstallationFailed(failedapp)
 				deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
 				continue
 			} else {
@@ -447,8 +468,10 @@ func setAllStatusFail() {
 	for i := range installedPackages {
 		installedPackages[i].Status = common.Failed.String()
 		installedPackages[i].Error = "Can't connect to OA Server."
-		var app common.AppId
+		var app common.FailedAppStatus
 		app.ID = installedPackages[i].ID
+		app.MainTask = mainTask
+		app.Msg = installedPackages[i].Error
 		api.InstallationFailed(app)
 	}
 }

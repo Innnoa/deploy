@@ -48,8 +48,15 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 		tasks := api.GetSeedTasks(common.CurrentSeed.SeedLabel)
 		installedPackages = append(installedPackages, tasks...)
 
-		ru := common.PackageInfo{AppName: "RU Service"}
-		installedPackages = append(installedPackages, ru)
+		sapps := api.GetCodesByGroup("SPECIAL_APP")
+		for _, app := range sapps {
+			if app.Code == "RU_SERVICE" {
+				appid := app.Code
+				ru := common.PackageInfo{AppName: "RU Service", ID: appid}
+				installedPackages = append(installedPackages, ru)
+			}
+		}
+
 	}
 
 	// uiShow := filter(installedPackages, func(p common.PackageInfo) bool { return strings.TrimSpace(p.AppName) != "Restart Machine" })

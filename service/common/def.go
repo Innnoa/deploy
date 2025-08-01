@@ -73,8 +73,14 @@ func (s Status) String() string {
 	}[s]
 }
 
-type AppId struct {
-	ID string `json:"appid"`
+type AppStatus struct {
+	ID       string `json:"appid"`
+	MainTask string `json:"maintaskid"`
+}
+
+type FailedAppStatus struct {
+	AppStatus
+	Msg string `json:"errmsg"`
 }
 
 type InstallInfo struct {
@@ -128,4 +134,10 @@ type SeedTimeInfo struct {
 	CreateTime string `json:"createTime"`
 	UpdateTime string `json:"updateTime"`
 	SeedLabel  string `json:"seedlabel"`
+}
+
+type GroupCode struct {
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
 }
