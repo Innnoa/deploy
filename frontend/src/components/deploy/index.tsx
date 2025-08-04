@@ -194,13 +194,8 @@ const columns = [
         style: { width: '90px' }
       },
       onOk: () => {
-        if (finished == true) {
-          console.log("exit app, reboot")
-          Reboot();
-        }
-
-        DeleteTempFiles();
-        (window as any).runtime?.Quit();
+          DeleteTempFiles();
+          (window as any).runtime?.Quit();
       }
     });
   };
@@ -347,8 +342,9 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
       Modal.confirm({
         title: 'Deploy complete!',
         icon: <CheckCircleFilled style={{ color: '#04B700' }} />,
-        content: 'Exit the application?',
-        okText: 'Exit',
+        content: 'You need to restart your computer to complete the installation.\n Click [Restart] to restart your computer, or [Exit] to manually restart your computer later.',
+        okText: 'Restart',
+        cancelText: 'Close',
         centered: true,
         okButtonProps: {
           style: { backgroundColor: '#0052cc',width: '90px' }
@@ -357,7 +353,12 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
           style: { width: '90px' }
         },
         onOk: () => {
-          handleCancel(true);
+          DeleteTempFiles();
+          (window as any).runtime?.Quit();
+          Reboot();
+        },
+        onCancel: () => {
+          DeleteTempFiles();
         }
       });
 
