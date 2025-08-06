@@ -88,7 +88,7 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
-	paths := api.GetCodesByGroup("COMMON_BAT_PATH")
+	paths := api.GetCodesByGroup("COMMON_BAT_DEPLOY_PATH")
 
 	if len(paths) == 0 {
 		setAllStatusFail()
@@ -402,16 +402,16 @@ func installPackages(target string, server string) {
 			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server)
 		case "Others":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "Seed_Tasks":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, longSeed, installedPackages[i].Path)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "LOCAL":
 			beforebat = "Printer.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].Path, installedPackages[i].WinFile, shortSeed)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "NETWORK":
 			beforebat = "PrintQ.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP)
+			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP, installedPackages[i].Path)
 		}
 
 		if err != nil {
@@ -453,14 +453,13 @@ func installPackages(target string, server string) {
 		installedPackages[i].Status = common.Completed.String()
 
 		api.InstallationSuccess(app)
-
-		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 	}
 
 	err := deleteTempFiles("C:\\Temp\\tool")
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
 	}
+	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 }
 
 func setAllStatusFail() {
@@ -506,7 +505,7 @@ func (p *Deploy) DeleteTempFiles() error {
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
 	}
-
+	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 	return err
 }
 

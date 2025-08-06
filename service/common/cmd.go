@@ -83,6 +83,8 @@ func RunScriptWithArgs(scriptPath string, args ...string) (string, error) {
 		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3])
 	} else if len(args) == 2 {
 		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1])
+	} else if len(args) == 8 {
+		cmd = exec.CommandContext(ctx, "cmd", "/C", scriptPath, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7])
 	}
 
 	SetHideWindow(cmd)
