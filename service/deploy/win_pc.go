@@ -322,7 +322,7 @@ func getLoginInfo() (string, string) {
 	logName, _ := windows.UTF16PtrFromString("Security")
 	handle, _, err := procOpen.Call(uintptr(unsafe.Pointer(serverName)), uintptr(unsafe.Pointer(logName)))
 	if handle == 0 {
-		log.Printf("procOpen error: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("procOpen error: %v", err))
 		procClose.Call(handle)
 
 		return "", ""
@@ -342,7 +342,7 @@ func getLoginInfo() (string, string) {
 			uintptr(unsafe.Pointer(&minBytesNeeded)),
 		)
 		if ret == 0 { // 读取失败
-			log.Printf("procRead error: %v", err)
+			common.AppLogger.Error(fmt.Sprintf("procRead error: %v", err))
 			break
 		}
 
@@ -350,19 +350,23 @@ func getLoginInfo() (string, string) {
 		ptr := unsafe.Pointer(&buf[0])
 		for bytesRead > 0 {
 			record := (*EVENTLOGRECORD)(ptr)
-			log.Printf("record: %v", record)
+			common.AppLogger.Info(fmt.Sprintf("record: %v", record))
 			if record.EventID == 4624 { // 登录成功事件
 				strs := parseStrings(record)
 
 				if !slices.Contains(excludeSIDArray, strs[4]) && slices.Contains(logonTypeArray, strs[8]) {
 					_, name, _ := sidToUsername(strs[4])
-					log.Printf("username: %s", name)
+					common.AppLogger.Info(fmt.Sprintf("username: %s", name))
 					timestamp := int64(record.TimeGenerated)
-
 					// 转换为 time.Time 对象
 					t := time.Unix(timestamp, 0).UTC() // 明确指定 UTC 时区
-					location, _ := time.LoadLocation("Asia/Shanghai")
+					location, err := time.LoadLocation("Asia/Shanghai")
+					if err != nil {
+						common.AppLogger.Error(fmt.Sprintf("LoadLocation error: %v", err))
+						location = time.FixedZone("CST", 8*3600) // UTC+8 for Shanghai
+					}
 					localTime := t.In(location).Format("2006-01-02 15:04:05")
+					common.AppLogger.Info(fmt.Sprintf("localTime: %s", localTime))
 
 					return name, localTime
 				}
