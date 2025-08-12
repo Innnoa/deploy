@@ -20,6 +20,7 @@ import (
 )
 
 var mainTask = ""
+var cancelling = false
 
 func CreateFileWithAutoDirs(filePath string) error {
 	// 输入验证
@@ -346,6 +347,9 @@ func installRU() error {
 
 func installPackages(target string, server string) {
 	for i := range installedPackages {
+		if cancelling {
+			break
+		}
 		if installedPackages[i].Status == common.Completed.String() ||
 			installedPackages[i].Status == common.Failed.String() {
 			continue
@@ -564,4 +568,20 @@ func rebootForInstall() {
 	saveTemporaryInfo()
 	createScheduledTask("Deploy", []string{"-restart"})
 	reboot()
+}
+
+func (p *Deploy) CancelInatallation() {
+	cancelling = true
+	for _, value := range installedPackages {
+		common.AppLogger.Info(fmt.Sprintf("CancelInatallation package.status : %s", value.Status))
+		if value.Status == "" || value.Status == common.Waiting.String() || value.Status == common.Running.String() {
+			value.Status = common.Canceled.String()
+
+			var app common.AppStatus
+			app.ID = value.ID
+			app.MainTask = mainTask
+			api.CancelInstallation(app)
+		}
+	}
+	os.Exit(0)
 }

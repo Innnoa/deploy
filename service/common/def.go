@@ -65,17 +65,19 @@ const (
 	Running
 	Completed
 	Failed
+	Canceled
 )
 
 func (s Status) String() string {
 	return [...]string{
-		"Waiting", "Running", "Completed", "Failed",
+		"Waiting", "Running", "Completed", "Failed", "Canceled",
 	}[s]
 }
 
 type AppStatus struct {
 	ID       string `json:"appid"`
 	MainTask string `json:"maintaskid"`
+	UserId   int    `json:"userid"`
 }
 
 type FailedAppStatus struct {
@@ -86,6 +88,7 @@ type FailedAppStatus struct {
 type InstallInfo struct {
 	Pols   []string `json:"pols"`
 	AppIds []string `json:"appids"`
+	UserId int      `json:"userid"`
 }
 
 type DetailComputerInfo struct {

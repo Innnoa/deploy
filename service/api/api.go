@@ -640,6 +640,41 @@ func InstallationFailed(id common.FailedAppStatus) {
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
 
+func CancelInstallation(id common.AppStatus) {
+	common.AppLogger.Info("cancel install.")
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+
+	m := structToMap(public)
+
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
+	m["signature"] = public.Signature
+
+	delete(m, "body")
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/cancelInstall", id, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return
+	}
+
+	var result UpdateInstallStatusResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return
+	}
+
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal CancelInstallation : %v", result))
+}
+
 func UploadPCInfo(info common.DetailComputerInfo) {
 	common.AppLogger.Info("upload pc info.")
 

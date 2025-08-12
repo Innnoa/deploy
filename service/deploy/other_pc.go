@@ -6,6 +6,7 @@ package deploy
 import "recovery-unit-deploy/service/common"
 
 func getUploadInfo() common.DetailComputerInfo {
+	common.CurrentUser = ""
 	return common.DetailPCInfo
 }
 

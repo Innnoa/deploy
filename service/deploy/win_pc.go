@@ -356,6 +356,7 @@ func getLoginInfo() (string, string) {
 
 				if !slices.Contains(excludeSIDArray, strs[4]) && slices.Contains(logonTypeArray, strs[8]) {
 					_, name, _ := sidToUsername(strs[4])
+					common.CurrentUser = name
 					common.AppLogger.Info(fmt.Sprintf("username: %s", name))
 					timestamp := int64(record.TimeGenerated)
 					// 转换为 time.Time 对象

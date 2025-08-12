@@ -2,7 +2,7 @@ import React, { useState ,useEffect} from 'react';
 import { Table, Button, Progress, Typography, Modal ,Tooltip} from 'antd';
 import { ExclamationCircleFilled,CheckCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
-import {GetInstallPackages,DoInstall,GetInstallStatus, Reboot, InstallAfterReboot, DeleteTempFiles} from "../../../wailsjs/go/deploy/Deploy";
+import {GetInstallPackages,DoInstall,GetInstallStatus, Reboot, InstallAfterReboot, DeleteTempFiles, CancelInatallation} from "../../../wailsjs/go/deploy/Deploy";
 
 const { Text } = Typography;
 
@@ -194,8 +194,9 @@ const columns = [
         style: { width: '90px' }
       },
       onOk: () => {
+          CancelInatallation();
           DeleteTempFiles();
-          (window as any).runtime?.Quit();
+          // (window as any).runtime?.Quit();
       }
     });
   };

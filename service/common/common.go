@@ -17,6 +17,8 @@ var DetailPCInfo DetailComputerInfo
 
 var Restart bool
 
+var CurrentUser string
+
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
