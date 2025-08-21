@@ -25,13 +25,13 @@ var cancelling = false
 func CreateFileWithAutoDirs(filePath string) error {
 	// 输入验证
 	if len(filePath) == 0 {
-		return errors.New("路径不能为空")
+		return errors.New("the file path cannot be empty")
 	}
 
 	// 路径标准化处理
 	normalizedPath := filepath.Clean(filePath)
 	if !filepath.IsAbs(normalizedPath) {
-		return errors.New("必须使用绝对路径")
+		return errors.New("absolute path must be used")
 	}
 
 	// 提取父目录
@@ -39,7 +39,7 @@ func CreateFileWithAutoDirs(filePath string) error {
 
 	// 递归创建目录
 	if err := os.MkdirAll(parentDir, 0755); err != nil {
-		return fmt.Errorf("目录创建失败: %v", err)
+		return fmt.Errorf("directory creation failed: %v", err)
 	}
 
 	// 检查文件存在性
@@ -47,7 +47,7 @@ func CreateFileWithAutoDirs(filePath string) error {
 		// 创建并打开文件
 		_, err := os.Create(normalizedPath)
 		if err != nil {
-			return fmt.Errorf("文件创建失败: %v", err)
+			return fmt.Errorf("file creation failed: %v", err)
 		}
 	}
 
@@ -78,7 +78,7 @@ func (p *Deploy) DoInstall() {
 	maintaskid, err := uploadInstallInfo()
 	mainTask = maintaskid
 	if err != nil {
-		setAllStatusFail()
+		setAllStatusFail("upload task infomation failed")
 		return
 	}
 
@@ -92,7 +92,7 @@ func (p *Deploy) DoInstall() {
 	paths := api.GetCodesByGroup("COMMON_BAT_DEPLOY_PATH")
 
 	if len(paths) == 0 {
-		setAllStatusFail()
+		setAllStatusFail("get common bat files path failed")
 		return
 	}
 
@@ -102,13 +102,17 @@ func (p *Deploy) DoInstall() {
 
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(target, 0755); err != nil {
-			common.AppLogger.Error(fmt.Sprintf("创建本地文件失败: %v", err))
-			setAllStatusFail()
+			common.AppLogger.Error(fmt.Sprintf("create local temp folder failed: %v", err))
+			setAllStatusFail("create local temp folder failed")
 			return
 		}
 	}
 
 	beforeBats := api.GetCodesByGroup("COMMON_BAT")
+	if len(beforeBats) == 0 {
+		setAllStatusFail("get common bat files infomation failed")
+		return
+	}
 
 	for _, bat := range beforeBats {
 		//Copy bat file that will run first before running app bat
@@ -117,15 +121,15 @@ func (p *Deploy) DoInstall() {
 		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
 
 		if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
-			common.AppLogger.Error(fmt.Sprintf("%s 拷贝失败: %v\n输出: %s", cmdCopy, err, common.DecodeByLocale(output)))
-			setAllStatusFail()
+			common.AppLogger.Error(fmt.Sprintf("%s copy common bat files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
+			setAllStatusFail("copy common bat files failed")
 			return
 		}
 
-		common.AppLogger.Info(fmt.Sprintf("文件 %s 拷贝成功", path.Join(src, bat.Name)))
+		common.AppLogger.Info(fmt.Sprintf("common bat file %s copy successful", path.Join(src, bat.Name)))
 	}
 
-	installPackages(target, server)
+	installPackages(target, server, tempMount)
 }
 
 func mount() (string, string, string, bool) {
@@ -150,17 +154,17 @@ func mount() (string, string, string, bool) {
 	)
 
 	if output, err := exec.Command("cmd", "/C", cmdMount).CombinedOutput(); err != nil {
-		common.AppLogger.Error(fmt.Sprintf("挂载失败: %v\n output: %s\n", err, common.DecodeByLocale(output)))
-		setAllStatusFail()
+		common.AppLogger.Error(fmt.Sprintf("mount OA Server failed: %v\n error: %s\n", err, common.DecodeByLocale(output)))
+		setAllStatusFail("can't connect to OA Server")
 		return "", "", "", false
 	}
 
-	common.AppLogger.Info("挂载成功")
+	common.AppLogger.Info("mount OA Server successful")
 	return server, tempMount, remotePath, true
 }
 
 func (p *Deploy) InstallAfterReboot() {
-	server, _, _, ret := mount()
+	server, _, tempMount, ret := mount()
 	if !ret {
 		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 		return
@@ -168,7 +172,7 @@ func (p *Deploy) InstallAfterReboot() {
 
 	target := "C:/Temp/tool"
 
-	installPackages(target, server)
+	installPackages(target, server, tempMount)
 }
 
 func createService(scm *mgr.Mgr, name, binPath string) error {
@@ -182,11 +186,11 @@ func createService(scm *mgr.Mgr, name, binPath string) error {
 	// 创建服务
 	service, err := scm.CreateService(name, binPath, config)
 	if err != nil {
-		common.AppLogger.Error(fmt.Sprintf("CreateService %s error: %v", name, err))
+		common.AppLogger.Error(fmt.Sprintf("create service %s error: %v", name, err))
 		return err
 	}
 	service.Close()
-	common.AppLogger.Info(fmt.Sprintf("Service %s created", name))
+	common.AppLogger.Info(fmt.Sprintf("service %s created", name))
 	return nil
 }
 
@@ -216,7 +220,7 @@ func stopServiceIfRunning(service *mgr.Service) error {
 		if err != nil {
 			return err
 		}
-		common.AppLogger.Info("服务已停止")
+		common.AppLogger.Info("service already stopped")
 	}
 	return nil
 }
@@ -234,7 +238,7 @@ func safeDeleteService(name string) error {
 		return err
 	}
 	if !exists {
-		common.AppLogger.Info("服务不存在")
+		common.AppLogger.Info("service does not exist")
 		return nil
 	}
 	defer service.Close()
@@ -257,7 +261,7 @@ func safeDeleteService(name string) error {
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	common.AppLogger.Info("服务已删除")
+	common.AppLogger.Info("service has been deleted")
 	return nil
 }
 
@@ -270,7 +274,7 @@ func createRUService(serviceName, binPath string) error {
 
 	// 创建新服务
 	if err := createService(scm, serviceName, binPath); err != nil {
-		common.AppLogger.Error(fmt.Sprintf("Create error: %v", err))
+		common.AppLogger.Error(fmt.Sprintf("create service error: %v", err))
 	}
 
 	return nil
@@ -281,27 +285,27 @@ func installRU() error {
 	url := ru.DownloadUrl
 	resp, err := http.Get(url)
 	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("download ruservice failed:", err))
+		common.AppLogger.Error(fmt.Sprintln("download ruservice.exe failed:", err))
 		return err
 	}
 	defer resp.Body.Close() // 必须关闭响应体[1,3,6](@ref)
 
 	if resp.StatusCode != http.StatusOK {
-		common.AppLogger.Error(fmt.Sprintln("download ruservice failed: ", resp.Status))
-		return fmt.Errorf("download ruservice failed: %s", resp.Status)
+		common.AppLogger.Error(fmt.Sprintln("download ruservice.exe failed: ", resp.Status))
+		return fmt.Errorf("download ruservice.exe failed: %s", resp.Status)
 	}
 
 	src := "C:\\Temp\\Tool\\ruservice.exe"
 	outFile, err := os.Create(src)
 	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("creat ruservice failed: ", err))
+		common.AppLogger.Error(fmt.Sprintln("creat ruservice.exe failed: ", err))
 		return err
 	}
 	defer outFile.Close()
 
 	_, err = io.Copy(outFile, resp.Body) // 流式复制避免内存溢出
 	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("save file failed: ", err))
+		common.AppLogger.Error(fmt.Sprintln("save ruservice.exe failed: ", err))
 		return err
 	}
 
@@ -317,7 +321,7 @@ func installRU() error {
 	}
 
 	if err := safeDeleteService("ruservice"); err != nil {
-		common.AppLogger.Error(fmt.Sprintf("操作失败: %v", err))
+		common.AppLogger.Error(fmt.Sprintf("failed to delete service: %v", err))
 	}
 
 	srcFile, err := os.Open(src)
@@ -345,7 +349,7 @@ func installRU() error {
 	return err
 }
 
-func installPackages(target string, server string) {
+func installPackages(target string, server string, mount string) {
 	for i := range installedPackages {
 		if cancelling {
 			break
@@ -376,7 +380,7 @@ func installPackages(target string, server string) {
 		} else if strings.TrimSpace(installedPackages[i].AppName) == "RU Service" {
 			err0 := installRU()
 			if err0 != nil {
-				common.AppLogger.Error(fmt.Sprintln("错误:", err0))
+				common.AppLogger.Error(fmt.Sprintln("install ruservice failed:", err0))
 				installedPackages[i].Status = common.Failed.String()
 				installedPackages[i].Error = err0.Error()
 				var failedapp common.FailedAppStatus
@@ -393,33 +397,32 @@ func installPackages(target string, server string) {
 		}
 
 		beforebat := ""
-		beforebatouput := ""
+		// beforebatouput := ""
 		var err error
 		shortSeed := common.CurrentComputerInfo.Seed[0:4]
 		longSeed := common.CurrentComputerInfo.Seed
 		switch installedPackages[i].AppType {
 		case "Force_App":
 			beforebat = "CTALAN.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "Security_Patch":
-			beforebat = installedPackages[i].WinFile
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server)
+			_, err = common.RunScriptWithArgs(path.Join(mount, installedPackages[i].Path, installedPackages[i].WinFile), shortSeed, server)
 		case "Others":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "Seed_Tasks":
 			beforebat = "OTHERS.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "LOCAL":
 			beforebat = "Printer.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
 		case "NETWORK":
 			beforebat = "PrintQ.bat"
-			beforebatouput, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP, installedPackages[i].Path)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP, installedPackages[i].Path)
 		}
 
 		if err != nil {
-			common.AppLogger.Error(fmt.Sprintln("错误:", err))
+			common.AppLogger.Error(fmt.Sprintln("failed to install the application:", err))
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = err.Error()
 			var failedapp common.FailedAppStatus
@@ -429,14 +432,14 @@ func installPackages(target string, server string) {
 			api.InstallationFailed(failedapp)
 			continue
 		}
-		common.AppLogger.Info(fmt.Sprintln("Bat输出:", beforebatouput))
+		// common.AppLogger.Info(fmt.Sprintln("Bat输出:", beforebatouput))
 
 		// 执行第二个cmd文件
 		localCmd := path.Join("C:/Temp/tool", "JOB.CMD")
 		if common.FileExists(localCmd) {
-			cmdOutput, err := common.RunScript(localCmd)
+			_, err := common.RunScript(localCmd)
 			if err != nil {
-				common.AppLogger.Error(fmt.Sprintln("JOB.CMD 执行错误:", err))
+				common.AppLogger.Error(fmt.Sprintln("run JOB.CMD failed:", err))
 				installedPackages[i].Status = common.Failed.String()
 				installedPackages[i].Error = err.Error()
 
@@ -448,7 +451,7 @@ func installPackages(target string, server string) {
 				deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
 				continue
 			} else {
-				common.AppLogger.Info(fmt.Sprintln("Cmd输出:", cmdOutput))
+				// common.AppLogger.Info(fmt.Sprintln("Cmd输出:", cmdOutput))
 			}
 
 			deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
@@ -461,15 +464,15 @@ func installPackages(target string, server string) {
 
 	err := deleteTempFiles("C:\\Temp\\tool")
 	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
+		common.AppLogger.Error(fmt.Sprintln("delete temp files failed:", err))
 	}
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 }
 
-func setAllStatusFail() {
+func setAllStatusFail(reason string) {
 	for i := range installedPackages {
 		installedPackages[i].Status = common.Failed.String()
-		installedPackages[i].Error = "Can't connect to OA Server."
+		installedPackages[i].Error = reason
 		var app common.FailedAppStatus
 		app.ID = installedPackages[i].ID
 		app.MainTask = mainTask
