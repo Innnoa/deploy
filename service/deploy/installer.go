@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -120,6 +119,12 @@ func (p *Deploy) DoInstall() {
 		source := filepath.Join(tempMount, filepath.Base(remotePath), src, bat.Name)
 		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
 
+		_, err = os.Stat(source)
+
+		if os.IsNotExist(err) {
+			common.AppLogger.Error(fmt.Sprintf("%s source is not exist.", source))
+			continue
+		}
 		if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
 			common.AppLogger.Error(fmt.Sprintf("%s copy common bat files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
 			setAllStatusFail("copy common bat files failed")
@@ -172,6 +177,7 @@ func (p *Deploy) InstallAfterReboot() {
 
 	target := "C:/Temp/tool"
 
+	var _ string = tempMount
 	installPackages(target, server, tempMount)
 }
 
@@ -280,38 +286,22 @@ func createRUService(serviceName, binPath string) error {
 	return nil
 }
 
-func installRU() error {
+func installRU(dir, mount string) error {
 	ru := api.GetAppVersionInfo("RU")
-	url := ru.DownloadUrl
-	resp, err := http.Get(url)
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("download ruservice.exe failed:", err))
-		return err
-	}
-	defer resp.Body.Close() // 必须关闭响应体[1,3,6](@ref)
+	url := ru.InstallPath
 
-	if resp.StatusCode != http.StatusOK {
-		common.AppLogger.Error(fmt.Sprintln("download ruservice.exe failed: ", resp.Status))
-		return fmt.Errorf("download ruservice.exe failed: %s", resp.Status)
-	}
+	src := filepath.Join(dir, filepath.Base(url))
+	source := filepath.Join(mount, url)
+	cmdCopy := fmt.Sprintf("copy %s %s", source, src)
 
-	src := "C:\\Temp\\Tool\\ruservice.exe"
-	outFile, err := os.Create(src)
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("creat ruservice.exe failed: ", err))
-		return err
-	}
-	defer outFile.Close()
-
-	_, err = io.Copy(outFile, resp.Body) // 流式复制避免内存溢出
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("save ruservice.exe failed: ", err))
-		return err
+	if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("%s copy ruservice.exe failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
+		return fmt.Errorf("%s copy ruservice.exe failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output))
 	}
 
 	target := "C:\\Program Files\\RU\\ruservice.exe"
 	targetDir := filepath.Dir(target)
-	_, err = os.Stat(targetDir)
+	_, err := os.Stat(targetDir)
 
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(targetDir, 0755); err != nil {
@@ -349,7 +339,7 @@ func installRU() error {
 	return err
 }
 
-func installPackages(target string, server string, mount string) {
+func installPackages(target, server, mount string) {
 	for i := range installedPackages {
 		if cancelling {
 			break
@@ -378,7 +368,7 @@ func installPackages(target string, server string, mount string) {
 
 			continue
 		} else if strings.TrimSpace(installedPackages[i].AppName) == "RU Service" {
-			err0 := installRU()
+			err0 := installRU(target, mount)
 			if err0 != nil {
 				common.AppLogger.Error(fmt.Sprintln("install ruservice failed:", err0))
 				installedPackages[i].Status = common.Failed.String()
@@ -397,28 +387,16 @@ func installPackages(target string, server string, mount string) {
 		}
 
 		beforebat := ""
-		// beforebatouput := ""
+		cleanPath := filepath.Clean(installedPackages[i].Path) // 规范化为系统原生格式（如Linux: /, Windows: \）
+		// cleanPath = strings.ReplaceAll(cleanPath, "/", "\\")
 		var err error
-		shortSeed := common.CurrentComputerInfo.Seed[0:4]
-		longSeed := common.CurrentComputerInfo.Seed
 		switch installedPackages[i].AppType {
-		case "Force_App":
-			beforebat = "CTALAN.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
-		case "Security_Patch":
-			_, err = common.RunScriptWithArgs(path.Join(mount, installedPackages[i].Path, installedPackages[i].WinFile), shortSeed, server)
-		case "Others":
-			beforebat = "OTHERS.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
-		case "Seed_Tasks":
-			beforebat = "OTHERS.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
-		case "LOCAL":
+		case "Printer":
 			beforebat = "Printer.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), longSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, shortSeed, installedPackages[i].Path)
-		case "NETWORK":
-			beforebat = "PrintQ.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), shortSeed, server, installedPackages[i].AppName, installedPackages[i].WinFile, installedPackages[i].PolNo, installedPackages[i].IP, installedPackages[i].Path)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP)
+		default:
+			beforebat = "CTALAN.bat"
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName)
 		}
 
 		if err != nil {
@@ -431,30 +409,6 @@ func installPackages(target string, server string, mount string) {
 			failedapp.Msg = installedPackages[i].Error
 			api.InstallationFailed(failedapp)
 			continue
-		}
-		// common.AppLogger.Info(fmt.Sprintln("Bat输出:", beforebatouput))
-
-		// 执行第二个cmd文件
-		localCmd := path.Join("C:/Temp/tool", "JOB.CMD")
-		if common.FileExists(localCmd) {
-			_, err := common.RunScript(localCmd)
-			if err != nil {
-				common.AppLogger.Error(fmt.Sprintln("run JOB.CMD failed:", err))
-				installedPackages[i].Status = common.Failed.String()
-				installedPackages[i].Error = err.Error()
-
-				var failedapp common.FailedAppStatus
-				failedapp.ID = app.ID
-				failedapp.MainTask = app.MainTask
-				failedapp.Msg = installedPackages[i].Error
-				api.InstallationFailed(failedapp)
-				deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
-				continue
-			} else {
-				// common.AppLogger.Info(fmt.Sprintln("Cmd输出:", cmdOutput))
-			}
-
-			deleteTempFile("C:\\Temp\\tool\\JOB.CMD")
 		}
 
 		installedPackages[i].Status = common.Completed.String()
@@ -479,14 +433,6 @@ func setAllStatusFail(reason string) {
 		app.Msg = installedPackages[i].Error
 		api.InstallationFailed(app)
 	}
-}
-
-func deleteTempFile(file string) error {
-	if err := os.Remove(file); err != nil {
-		common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", file, err))
-	}
-
-	return nil
 }
 
 func deleteTempFiles(dir string) error {

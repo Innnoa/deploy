@@ -11,16 +11,6 @@ var networkPrinterDriverList []common.PrinterWithPackage
 var selectedNetworkPrinters []common.Printer
 var installedPackages []common.PackageInfo
 
-func filter(slice []common.PackageInfo, f func(common.PackageInfo) bool) []common.PackageInfo {
-	var result []common.PackageInfo
-	for _, v := range slice {
-		if f(v) {
-			result = append(result, v)
-		}
-	}
-	return result
-}
-
 func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 	if common.Restart {
 		//do nothing
@@ -30,7 +20,7 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 		for _, p := range selectedNetworkPrinters {
 			for _, value := range networkPrinterDriverList {
 				if p.ID == value.ID {
-					pi := common.PackageInfo{ID: value.AppId, AppName: value.AppName, AppType: "NETWORK", Path: value.Path, WinFile: value.WinFile, UOSFile: value.UOSFile, KylinFile: value.KylinFile, PolNo: p.PolNo, IP: p.IP}
+					pi := common.PackageInfo{ID: value.AppId, AppName: value.AppName, AppType: value.AppType, Path: value.Path, WinFile: value.WinFile, UOSFile: value.UOSFile, KylinFile: value.KylinFile, PolNo: p.PolNo, IP: p.IP}
 					installedPackages = append(installedPackages, pi)
 					break
 				}
