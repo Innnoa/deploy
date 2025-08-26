@@ -387,8 +387,7 @@ func installPackages(target, server, mount string) {
 		}
 
 		beforebat := ""
-		cleanPath := filepath.Clean(installedPackages[i].Path) // 规范化为系统原生格式（如Linux: /, Windows: \）
-		// cleanPath = strings.ReplaceAll(cleanPath, "/", "\\")
+		cleanPath := filepath.Clean(installedPackages[i].Path)
 		var err error
 		switch installedPackages[i].AppType {
 		case "Printer":

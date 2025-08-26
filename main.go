@@ -25,6 +25,7 @@ var assets embed.FS
 const lockPort = 60629
 
 var Version = "1.0.0" // 默认值
+var BaseUrl = "http://deploy.ru.com:9900/api-system"
 var HasNewVersion = false
 
 func hasNewVersion() bool {
@@ -121,7 +122,7 @@ func main() {
 	app := NewApp(startPage)
 
 	deploy := &deploy.Deploy{}
-	deploy.InitClient()
+	deploy.InitClient(BaseUrl)
 
 	if !isRestart && hasNewVersion() {
 		deploy.HasNewVersion = true

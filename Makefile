@@ -5,6 +5,7 @@ PACKAGE_NAME = Deploy
 VERSION = 0.8.0.2508180
 BUILD_DIR = build/bin
 BINARY_NAME = Deploy.exe
+BASE_URL = http://deploy.ru.com:9900/api-system
 
 # 安全提示：GITLAB_TOKEN 必须通过环境变量传入，不要硬编码 set GITLAB_TOKEN=xxxxxxxxxx！
 # 生成方式：GitLab 账号 → Settings → Access Tokens → 勾选 api 权限
@@ -17,7 +18,7 @@ all: build upload
 
 # 构建 Wails 应用
 build:
-	wails build -webview2 Embed -clean -ldflags "-X main.Version=$(VERSION)"
+	wails build -webview2 Embed -clean -ldflags "-X main.Version=$(VERSION)" "-X main.BaseUrl=$(BASE_URL)"
 
 # 上传到 GitLab Generic Package Registry
 upload:
