@@ -388,6 +388,8 @@ func installPackages(target, server, mount string) {
 
 		beforebat := ""
 		cleanPath := filepath.Clean(installedPackages[i].Path)
+		shortSeed := common.CurrentComputerInfo.Seed[0:4]
+		longSeed := common.CurrentComputerInfo.Seed
 		var err error
 		switch installedPackages[i].AppType {
 		case "Printer":
@@ -395,7 +397,7 @@ func installPackages(target, server, mount string) {
 			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP)
 		default:
 			beforebat = "CTALAN.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].AppType, longSeed, shortSeed)
 		}
 
 		if err != nil {
