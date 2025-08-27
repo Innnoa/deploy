@@ -417,10 +417,10 @@ func installPackages(target, server, mount string) {
 		api.InstallationSuccess(app)
 	}
 
-	err := deleteTempFiles("C:\\Temp\\tool")
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("delete temp files failed:", err))
-	}
+	// err := deleteTempFiles("C:\\Temp\\tool")
+	// if err != nil {
+	// 	common.AppLogger.Error(fmt.Sprintln("delete temp files failed:", err))
+	// }
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 }
 
