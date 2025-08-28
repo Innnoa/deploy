@@ -5,7 +5,7 @@ PACKAGE_NAME = Deploy
 VERSION = 0.8.0.2508270
 BUILD_DIR = build/bin
 BINARY_NAME = Deploy.exe
-BASE_URL = http://deploy.ru.com:9900/api-system
+BASE_URL = https://deploy.ru.com/api-system
 
 # 安全提示：GITLAB_TOKEN 必须通过环境变量传入，不要硬编码 set GITLAB_TOKEN=xxxxxxxxxx！
 # 生成方式：GitLab 账号 → Settings → Access Tokens → 勾选 api 权限

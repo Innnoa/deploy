@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -175,11 +176,16 @@ type APIClient struct {
 }
 
 func NewAPIClient(baseURL string) *APIClient {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // 关键配置
+		},
+	}
 	return &APIClient{
 		BaseURL:    baseURL,
 		Headers:    make(map[string]string),
-		Timeout:    10 * time.Second,
-		HTTPClient: &http.Client{Timeout: 10 * time.Second},
+		Timeout:    20 * time.Second,
+		HTTPClient: &http.Client{Timeout: 20 * time.Second, Transport: transport},
 	}
 }
 
