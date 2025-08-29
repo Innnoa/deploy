@@ -3,7 +3,10 @@
 
 package deploy
 
-import "recovery-unit-deploy/service/common"
+import (
+	"os"
+	"recovery-unit-deploy/service/common"
+)
 
 func getUploadInfo() common.DetailComputerInfo {
 	common.CurrentUser = ""
@@ -11,5 +14,9 @@ func getUploadInfo() common.DetailComputerInfo {
 }
 
 func getLastKBCode() string {
-	return ""
+	return os.Getenv("SEEDLABEL")
+}
+
+func checkSeedFile() bool {
+	return true
 }
