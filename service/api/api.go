@@ -2,11 +2,14 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"recovery-unit-deploy/service/common"
 	"strings"
 	"time"
@@ -115,12 +118,55 @@ type GetSeedLabelRequest struct {
 
 type GetSeedLabelResponse struct {
 	PublicResponse
-	Data common.SeedLabelInfo `json:"data"`
+	Data []common.SeedLabelInfo `json:"data"`
+}
+
+type GetSeedTasksRequest struct {
+	PublicRequest
+	Seed string `json:"seedlabel"`
+}
+
+type GetSeedTasksResponse struct {
+	PublicResponse
+	Data []common.PackageInfo `json:"data"`
+}
+
+type GetAppVersionInfoRequest struct {
+	PublicRequest
+	Type string `json:"type"`
+}
+
+type GetAppVersionInfoResponse struct {
+	PackageResponse
+	Data common.AppVersionInfo `json:"data"`
+}
+
+type CheckSeedLabelRequest struct {
+	PublicRequest
+	Info common.SeedTimeInfo
+}
+
+type CheckSeedLabelResponse struct {
+	PublicResponse
+	Data bool `json:"data"`
+}
+
+type GetCodesByGroupRequest struct {
+	PublicRequest
+	Group string `json:"group"`
+}
+
+type GetCodesByGroupResponse struct {
+	PublicResponse
+	Data []common.GroupCode `json:"data"`
 }
 
 var Client *APIClient
 var ACCESS_KEY string = "b3fd07fc731146c7bb5bdc953da719d0"
 var ACCESS_SECRET string = "iSkv1/0X/CVk49l+jloSCv7eTGWTFrBZ"
+
+var ACCESS_KEY_RU string = "0efdba78bccf45f496c27e70a7442dd9"
+var ACCESS_SECRET_RU string = "jvOIJ/VTSZLPwgpEfOHdZWDBPNiz1xvv"
 
 type APIClient struct {
 	BaseURL    string
@@ -130,20 +176,33 @@ type APIClient struct {
 }
 
 func NewAPIClient(baseURL string) *APIClient {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // 关键配置
+		},
+	}
 	return &APIClient{
 		BaseURL:    baseURL,
 		Headers:    make(map[string]string),
-		Timeout:    10 * time.Second,
-		HTTPClient: &http.Client{Timeout: 10 * time.Second},
+		Timeout:    20 * time.Second,
+		HTTPClient: &http.Client{Timeout: 20 * time.Second, Transport: transport},
 	}
 }
 
+// 修改后的CallAPI方法
 func (c *APIClient) CallAPI(
 	method string,
 	endpoint string,
 	body interface{},
+	pathParams map[string]interface{},
 	queryParams map[string]string,
 ) ([]byte, int, error) {
+	// 替换路径参数
+	for key, value := range pathParams {
+		placeholder := "{" + key + "}"
+		endpoint = strings.Replace(endpoint, placeholder, fmt.Sprintf("%v", value), -1)
+	}
+
 	// 构建完整URL
 	u, err := url.Parse(c.BaseURL + endpoint)
 	if err != nil {
@@ -215,11 +274,11 @@ func GetOAServer(ip string) string {
 	request.PublicReq = public
 
 	m := structToMap(request)
-	public.Signature = generateSignature(http.MethodGet, nil, m)
+	public.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = public.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getOAServer", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getOAServer", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -253,11 +312,11 @@ func GetPrinterModels() []common.PrinterModel {
 	public.Timestamp = getCurrentTimestamp()
 
 	m := structToMap(public)
-	public.Signature = generateSignature(http.MethodGet, nil, m)
+	public.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = public.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getPrinterBrands", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getPrinterBrands", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -294,11 +353,11 @@ func GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByBrand", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByBrand", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -334,11 +393,11 @@ func GetNetworkPinterList(keyword string) []common.PrinterWithPackage {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getNetworkPrinters", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getNetworkPrinters", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -378,11 +437,11 @@ func GetAllPackages(pol string, seed string) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getInstallableApps", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getInstallableApps", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -421,11 +480,11 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByIds", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getAppsByIds", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -446,7 +505,7 @@ func GetNetworkPrinterDrivers(printers []common.Printer) []common.PackageInfo {
 	return result.Data
 }
 
-func UploadInstallInfo(info common.InstallInfo) error {
+func UploadInstallInfo(info common.InstallInfo) (string, error) {
 	common.AppLogger.Info("upload install info.")
 
 	var public PublicRequest
@@ -455,34 +514,34 @@ func UploadInstallInfo(info common.InstallInfo) error {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, info, m)
+	public.Signature = generateSignature(http.MethodPost, info, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", info, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadInstallProgress", info, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
-		return err
+		return "", err
 	}
 
 	if status != http.StatusOK {
 		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
-		return fmt.Errorf("业务错误: HTTP %d → %s", status, string(data))
+		return "", fmt.Errorf("业务错误: HTTP %d → %s", status, string(data))
 	}
 
 	var result UploadInstallInfoResponse
 	if err := json.Unmarshal(data, &result); err != nil {
 		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
-		return err
+		return "", err
 	}
 
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallResponse : %v", result))
-	return nil
+	return result.Data, nil
 }
 
-func StartInstall(id common.AppId) {
+func StartInstall(id common.AppStatus) {
 	common.AppLogger.Info("start install.")
 
 	var public PublicRequest
@@ -491,12 +550,12 @@ func StartInstall(id common.AppId) {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, id, m)
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", id, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/startInstall", id, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -517,7 +576,7 @@ func StartInstall(id common.AppId) {
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
 
-func InstallationSuccess(id common.AppId) {
+func InstallationSuccess(id common.AppStatus) {
 	common.AppLogger.Info("install success.")
 
 	var public PublicRequest
@@ -526,12 +585,12 @@ func InstallationSuccess(id common.AppId) {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, id, m)
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", id, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationSuccess", id, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -552,7 +611,7 @@ func InstallationSuccess(id common.AppId) {
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
 }
 
-func InstallationFailed(id common.AppId) {
+func InstallationFailed(id common.FailedAppStatus) {
 	common.AppLogger.Info("install failed.")
 
 	var public PublicRequest
@@ -561,12 +620,12 @@ func InstallationFailed(id common.AppId) {
 
 	m := structToMap(public)
 
-	public.Signature = generateSignature(http.MethodPost, id, m)
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
 	delete(m, "body")
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", id, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installationFailed", id, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -585,6 +644,41 @@ func InstallationFailed(id common.AppId) {
 	}
 
 	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
+}
+
+func CancelInstallation(id common.AppStatus) {
+	common.AppLogger.Info("cancel install.")
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+
+	m := structToMap(public)
+
+	public.Signature = generateSignature(http.MethodPost, id, ACCESS_SECRET, m)
+	m["signature"] = public.Signature
+
+	delete(m, "body")
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/cancelInstall", id, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return
+	}
+
+	var result UpdateInstallStatusResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return
+	}
+
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal CancelInstallation : %v", result))
 }
 
 func UploadPCInfo(info common.DetailComputerInfo) {
@@ -599,11 +693,11 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodPost, info, m)
+	request.Signature = generateSignature(http.MethodPost, info, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadPcInfo", info, m)
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadPcInfo", info, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -629,13 +723,9 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 }
 
 func GetSeedLabel(kbcode string) common.SeedLabelInfo {
-	localSeed := common.GetSeed()
-
 	common.AppLogger.Info("get seedlabel from kbcode")
 
 	var seedlabel common.SeedLabelInfo
-	seedlabel.SeedLabel = localSeed
-	seedlabel.Status = "Active"
 
 	var request GetSeedLabelRequest
 	request.KBCode = kbcode
@@ -646,11 +736,11 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 	request.PublicRequest = public
 
 	m := structToMap(request)
-	request.Signature = generateSignature(http.MethodGet, nil, m)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 
 	m["signature"] = request.Signature
 
-	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedInfoByKb", nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedInfoByKb", nil, nil, m)
 
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
@@ -668,13 +758,179 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 		return seedlabel
 	}
 
-	if result.Data.SeedLabel == "" {
-		result.Data.SeedLabel = localSeed
+	for _, sl := range result.Data {
+		filename := fmt.Sprintf("C:\\%s.seedlabel.txt", sl.SeedLabel)
+		_, err := os.Stat(filename)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+
+		seedlabel = sl
+		common.CurrentComputerInfo.Seed = sl.SeedLabel
+		common.CurrentSeed = sl
 	}
 
-	if localSeed != result.Data.SeedLabel {
-		//update local seed
-		common.UpdateLocalSeed(result.Data.SeedLabel)
+	return seedlabel
+}
+
+func GetSeedTasks(seed string) []common.PackageInfo {
+	common.AppLogger.Info("get tasks from seedlabel")
+
+	var tasks []common.PackageInfo
+
+	var request GetSeedTasksRequest
+	request.Seed = seed
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getTaskApps", nil, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return tasks
 	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return tasks
+	}
+
+	var result GetSeedTasksResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return tasks
+	}
+
+	tasks = append(tasks, result.Data...)
+
+	return tasks
+}
+
+func GetAppVersionInfo(t string) common.AppVersionInfo {
+	common.AppLogger.Info("get newest app verion info")
+
+	var appInfo common.AppVersionInfo
+	var request GetAppVersionInfoRequest
+	request.Type = t
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY_RU
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(http.MethodPost, t, ACCESS_SECRET_RU, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/ru/version/info", t, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return appInfo
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return appInfo
+	}
+
+	var result GetAppVersionInfoResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return appInfo
+	}
+
+	appInfo = result.Data
+	return appInfo
+}
+
+func CheckSeedLabel(seed string, modTime string, createTime string) bool {
+	common.AppLogger.Info("check seedlabel by created time and modified time")
+
+	var request CheckSeedLabelRequest
+	var seedTimeInfo common.SeedTimeInfo
+	seedTimeInfo.SeedLabel = seed
+	seedTimeInfo.CreateTime = createTime
+	seedTimeInfo.UpdateTime = modTime
+	request.Info = seedTimeInfo
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(http.MethodPost, seedTimeInfo, ACCESS_SECRET, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/checkSeedFile", seedTimeInfo, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return false
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return false
+	}
+
+	var result CheckSeedLabelResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return false
+	}
+
+	return result.Data
+}
+
+func GetCodesByGroup(group string) []common.GroupCode {
+	common.AppLogger.Info("get code from group")
+
+	var codes []common.GroupCode
+
+	var request GetCodesByGroupRequest
+	request.Group = group
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getCodesByGroup", nil, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		return codes
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		return codes
+	}
+
+	var result GetCodesByGroupResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		return codes
+	}
+
 	return result.Data
 }

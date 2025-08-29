@@ -29,10 +29,8 @@ func (p *Deploy) GetSelectedLocalPrinterDrivers(id string) []common.PackageInfo 
 	drivers := api.GetSelectedLocalPrinterDrivers(id)
 	localPrinterDriverList = localPrinterDriverList[:0]
 	localPrinterDriverList = drivers
-	for index := range localPrinterDriverList {
-		localPrinterDriverList[index].AppType = "LOCAL"
-	}
-	return localPrinterDriverList
+
+	return drivers
 }
 
 func (p *Deploy) SetSelectedPrinters(driverId string, printers []common.Printer) bool {

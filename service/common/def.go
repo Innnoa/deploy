@@ -6,6 +6,7 @@ type OAServer struct {
 	IP         string `json:"ip"`
 	UserName   string `json:"username"`
 	Password   string `json:"password"`
+	RootPath   string `json:"rootPath"`
 }
 
 type PrinterModel struct {
@@ -42,18 +43,21 @@ type Printer struct {
 }
 
 type PackageInfo struct {
-	ID        string `json:"id"`
-	AppName   string `json:"appname"`
-	BrandId   string `json:"brandId"`
-	AppType   string `json:"apptype"`
-	Path      string `json:"installpath"`
-	WinFile   string `json:"winfile"`
-	UOSFile   string `json:"uosdeb"`
-	KylinFile string `json:"kylindeb"`
-	Status    string `json:"status"`
-	Error     string `json:"error"`
-	PolNo     string `json:"pol"`
-	IP        string `json:"ip"`
+	ID            string `json:"id"`
+	AppName       string `json:"appname"`
+	BrandId       string `json:"brandId"`
+	AppType       string `json:"apptype"`
+	Path          string `json:"installpath"`
+	WinFile       string `json:"winfile"`
+	UOSFile       string `json:"uosdeb"`
+	KylinFile     string `json:"kylindeb"`
+	Status        string `json:"status"`
+	Error         string `json:"error"`
+	PolNo         string `json:"pol"`
+	IP            string `json:"ip"`
+	Reboot        string `json:"reboot"`
+	PrinterName   string `json:"printerName"`
+	PrinterDriver string `json:"printerDriver"`
 }
 
 type Status int
@@ -63,21 +67,30 @@ const (
 	Running
 	Completed
 	Failed
+	Canceled
 )
 
 func (s Status) String() string {
 	return [...]string{
-		"Waiting", "Running", "Completed", "Failed",
+		"Waiting", "Running", "Completed", "Failed", "Canceled",
 	}[s]
 }
 
-type AppId struct {
-	ID string `json:"appid"`
+type AppStatus struct {
+	ID       string `json:"appid"`
+	MainTask string `json:"maintaskid"`
+	UserId   int    `json:"userid"`
+}
+
+type FailedAppStatus struct {
+	AppStatus
+	Msg string `json:"errmsg"`
 }
 
 type InstallInfo struct {
 	Pols   []string `json:"pols"`
 	AppIds []string `json:"appids"`
+	UserId int      `json:"userid"`
 }
 
 type DetailComputerInfo struct {
@@ -107,4 +120,30 @@ type SeedLabelInfo struct {
 	Id        string `json:"id"`
 	SeedLabel string `json:"seedlabel"`
 	Status    string `json:"status"`
+}
+
+type TempInfo struct {
+	Packages []PackageInfo `json:"packages"`
+	Server   OAServer      `json:"server"`
+	Computer ComputerInfo  `json:"computer"`
+}
+
+type AppVersionInfo struct {
+	Version      string `json:"version"`
+	Type         string `json:"type"`
+	DownloadUrl  string `json:"downloadUrl"`
+	InstallPath  string `json:"installPath"`
+	ReleaseNotes string `json:"releaseNotes"`
+}
+
+type SeedTimeInfo struct {
+	CreateTime string `json:"createTime"`
+	UpdateTime string `json:"updateTime"`
+	SeedLabel  string `json:"seedlabel"`
+}
+
+type GroupCode struct {
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
 }

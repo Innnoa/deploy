@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
-import {InitClient,GetOAServer,GetSeedLabel,
-        GetPrinterModels, GetNetworkPinterList
+import {GetOAServer,GetSeedLabel,
+        GetPrinterModels, GetNetworkPinterList, CheckSeedLabel
 } from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
 import { useAppContext } from '../../context/AppContext';
@@ -148,6 +148,9 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         },
         cancelButtonProps: {
           style: { width: '90px' }
+        },
+        onCancel: () => {
+          (window as any).runtime?.Quit();
         }
       })
     }
@@ -177,7 +180,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
 
     try {
       // 初始化客户端连接
-      const info = await InitClient('','');
+      // const info = await InitClient();
       // appContext.setServer(server);
       // appContext.setPort(port);
       
@@ -216,12 +219,12 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       const seed = await GetSeedLabel();
       if (typeof seed.seedlabel === 'string' && seed.seedlabel.length > 0) {
         if (seed.status === 'Active') {        
-          getPrinterModels();
+          checkSeedlabel(seed.seedlabel);
         }else{
-        seedLabelTip('The seedlabel on this computer has expired. Please reinstall the system before running this program.');
-      }
+          seedLabelTip('The seedlabel on this computer has expired. Please reinstall the system before running this program.');
+        }
       }else{
-        seedLabelTip('Failed to obtain SeedLabel; installation is not possible.');
+        seedLabelTip('Failed to obtain seedlabel; installation is not possible.');
       }
       appContext.setComputerInfo({
         name: computerInfo.name,
@@ -230,8 +233,21 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
         ip: computerInfo.ip,
       });
     } catch (error) {
-      seedLabelTip('Failed to obtain SeedLabel; installation is not possible.');
+      seedLabelTip('The seedlabel on this computer is invalid and the program cannot be run.');
     } 
+  };
+
+  const checkSeedlabel = async (seed:string) => {
+    try {
+      const result = await CheckSeedLabel();
+      if (result) {
+        getPrinterModels();
+      }else{
+        seedLabelTip('The seedlabel on this computer is invalid.');
+      }      
+    } catch (error) {
+      seedLabelTip('The seedlabel on this computer is invalid.');
+    }   
   };
 
   // 获取打印机品牌

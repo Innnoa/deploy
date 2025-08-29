@@ -2,12 +2,15 @@ package main
 
 import (
 	"embed"
-	"flag"
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
+	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 	"recovery-unit-deploy/service/deploy"
+	"strconv"
+	"strings"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -21,7 +24,35 @@ var assets embed.FS
 // lockPort 用于进程间通信的端口，应设为应用唯一的端口
 const lockPort = 60629
 
-var Version = "unset" // 默认值
+var Version = "1.0.0" // 默认值
+var BaseUrl = "https://deploy.ru.com/api-system"
+var HasNewVersion = false
+
+func hasNewVersion() bool {
+	appInfo := api.GetAppVersionInfo("DEPLOY")
+
+	v1 := strings.Split(appInfo.Version, ".")
+	v2 := strings.Split(Version, ".")
+
+	maxLen := max(len(v1), len(v2))
+
+	for i := 0; i < maxLen; i++ {
+		num1, num2 := 0, 0
+		if i < len(v1) {
+			num1, _ = strconv.Atoi(v1[i]) // 忽略错误
+		}
+		if i < len(v2) {
+			num2, _ = strconv.Atoi(v2[i])
+		}
+
+		if num1 > num2 {
+			return true
+		} else if num1 < num2 {
+			return false
+		}
+	}
+	return false
+}
 
 // 检查应用是否已经运行
 func isAlreadyRunning() bool {
@@ -50,9 +81,28 @@ func main() {
 
 	common.AppLogger.Info(fmt.Sprintf("Current version is: %s", Version))
 
-	devMode := flag.Bool("dev", false, "Enable development mode")
-	flag.Parse()
-	common.CheckAdmin = !*devMode
+	common.AppLogger.Info(fmt.Sprintf("os.Args[0]: %s", os.Args[0]))
+
+	dir := filepath.Dir(os.Args[0])
+
+	args := os.Args[1:] // 忽略第一个参数（程序路径）
+	isDebug := false
+	isRestart := false
+	for _, arg := range args {
+		if arg == "-debug" {
+			isDebug = true
+		} else if arg == "-restart" {
+			isRestart = true
+			common.Restart = isRestart
+			deploy.DeleteScheduledTask("Deploy")
+		}
+	}
+	common.CheckAdmin = !isDebug
+
+	startPage := ""
+	if isRestart {
+		startPage = "deploy"
+	}
 
 	// 1. 防止双重启动
 	if isAlreadyRunning() {
@@ -69,7 +119,22 @@ func main() {
 	defer listener.Close()
 
 	// Create an instance of the app structure
-	app := NewApp()
+	app := NewApp(startPage)
+
+	deploy := &deploy.Deploy{}
+	deploy.InitClient(BaseUrl)
+
+	if !isRestart && hasNewVersion() {
+		deploy.HasNewVersion = true
+	}
+
+	if isRestart {
+		path := filepath.Join(dir, "temp.json")
+		deploy.LoadTemporaryInfo(path)
+		if err := os.Remove(path); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", path, err))
+		}
+	}
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:         "Deploy",
@@ -85,7 +150,7 @@ func main() {
 		LogLevel:           logger.TRACE,
 		LogLevelProduction: logger.TRACE,
 		Bind: []interface{}{
-			app, &deploy.Deploy{}},
+			app, deploy},
 	})
 
 	if err != nil {

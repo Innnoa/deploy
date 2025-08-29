@@ -5,8 +5,13 @@ import (
 )
 
 type Deploy struct {
+	HasNewVersion bool
 }
 
-func (p *Deploy) InitClient(server string, port string) {
-	api.Client = api.NewAPIClient("http://" + "deploy.ru.com:9900" + "/api-system")
+func (p *Deploy) InitClient(baseUrl string) {
+	api.Client = api.NewAPIClient(baseUrl)
+}
+
+func (p *Deploy) CheckNewVersion() bool {
+	return p.HasNewVersion
 }

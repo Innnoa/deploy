@@ -1,10 +1,10 @@
 //go:build !windows
 // +build !windows
 
-package deploy
+package common
 
 import "os/exec"
 
-func setHideWindow(cmd *exec.Cmd) {
+func SetHideWindow(cmd *exec.Cmd) {
 	// 空实现
 }
