@@ -133,11 +133,13 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
       title: 'Pol No.',
       dataIndex: 'pol',
       key: 'pol',
+      align: 'left',
     },
     {
       title: 'IP',
       dataIndex: 'ip',
       key: 'ip',
+      align: 'left',
     },
   ];
 
@@ -148,6 +150,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
       setSelectedRowKeys(newSelectedRowKeys);
       setSelectedRows(newSelectedRows); // 保存已选择的item详细信息
     },
+    columnWidth: 32,
   };
   // 动态计算是否需要滚动
   const getTableScroll = () => {
@@ -314,7 +317,8 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
           rowKey="id"
           bordered={false}
             // scroll={{ y: 'calc(100vh - 510px)' }} /* 设置表格内部滚动 */
-          scroll={getTableScroll() || undefined}
+          scroll={{ y: 260 }}
+          virtual
         />
       </div>
 
