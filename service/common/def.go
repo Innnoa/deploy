@@ -79,7 +79,6 @@ func (s Status) String() string {
 type AppStatus struct {
 	ID       string `json:"appid"`
 	MainTask string `json:"maintaskid"`
-	UserId   int    `json:"userid"`
 }
 
 type FailedAppStatus struct {
