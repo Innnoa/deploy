@@ -2,8 +2,8 @@
   "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "Deployment tool",      
   "info": {     
-    "productVersion": "0.8.0.2509011",       
-    "fileVersion": "0.8.0.13",           
+    "productVersion": "0.8.0.2509050",       
+    "fileVersion": "0.8.0.15",           
     "copyright": "Copyright © 2025",
     "productName": "Deploy"
   },
@@ -19,9 +19,5 @@
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
-  "frontend:dev:serverUrl": "auto",
-  "author": {
-    "name": "shanyu",
-    "email": "shanyu@deepinsighttech.com"
-  }
+  "frontend:dev:serverUrl": "auto"
 }

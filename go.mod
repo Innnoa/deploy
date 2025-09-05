@@ -3,7 +3,6 @@ module recovery-unit-deploy
 go 1.24.2
 
 require (
-	github.com/CodyGuo/win v0.0.0-20170113125346-08e6b7208274
 	github.com/StackExchange/wmi v1.2.1
 	github.com/wailsapp/wails/v2 v2.10.1
 	golang.org/x/sys v0.35.0
