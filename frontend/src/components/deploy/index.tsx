@@ -359,7 +359,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
           Reboot();
         },
         onCancel: () => {
-          DeleteTempFiles();
+          // DeleteTempFiles();
         }
       });
 

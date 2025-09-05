@@ -122,9 +122,10 @@ type SeedLabelInfo struct {
 }
 
 type TempInfo struct {
-	Packages []PackageInfo `json:"packages"`
-	Server   OAServer      `json:"server"`
-	Computer ComputerInfo  `json:"computer"`
+	Packages   []PackageInfo `json:"packages"`
+	Server     OAServer      `json:"server"`
+	Computer   ComputerInfo  `json:"computer"`
+	MaintaskId string        `json:"maintaskid"`
 }
 
 type AppVersionInfo struct {

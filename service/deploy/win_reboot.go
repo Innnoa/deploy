@@ -9,21 +9,7 @@ import (
 	"os/exec"
 	"recovery-unit-deploy/service/common"
 	"strings"
-
-	"github.com/CodyGuo/win"
 )
-
-func getPrivileges() {
-	var hToken win.HANDLE
-	var tkp win.TOKEN_PRIVILEGES
-	// 获取当前进程权限令牌
-	win.OpenProcessToken(win.GetCurrentProcess(), win.TOKEN_ADJUST_PRIVILEGES|win.TOKEN_QUERY, &hToken)
-	// 设置关机特权
-	win.LookupPrivilegeValueA(nil, win.StringToBytePtr(win.SE_SHUTDOWN_NAME), &tkp.Privileges[0].Luid)
-	tkp.PrivilegeCount = 1
-	tkp.Privileges[0].Attributes = win.SE_PRIVILEGE_ENABLED
-	win.AdjustTokenPrivileges(hToken, false, &tkp, 0, nil, nil)
-}
 
 func createScheduledTask(taskName string, args []string) {
 	exePath, _ := os.Executable()
@@ -57,6 +43,16 @@ func DeleteScheduledTask(taskName string) {
 }
 
 func reboot() {
-	getPrivileges()
-	win.ExitWindowsEx(win.EWX_REBOOT, 0) // 调用重启 API
+	cmd := exec.Command("shutdown", "/r", "/t", "0")
+
+	// 执行命令并等待其完成
+	err := cmd.Run()
+
+	// 错误处理
+	if err != nil {
+		fmt.Printf("reboot failed: %v\n", err)
+		return
+	}
+
+	fmt.Println("computer will reboot soon")
 }

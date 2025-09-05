@@ -139,11 +139,11 @@ func (p *Deploy) DoInstall() {
 
 func mount() (string, string, string, bool) {
 	server := ""
-	if common.CurrentOA.IP != "" {
-		server = common.CurrentOA.IP
-	} else {
-		server = common.CurrentOA.ServerName
-	}
+	// if common.CurrentOA.IP != "" {
+	// 	server = common.CurrentOA.IP
+	// } else {
+	server = common.CurrentOA.ServerName
+	// }
 	username := common.CurrentOA.UserName //get from server
 	encryptedPassword := common.CurrentOA.Password
 	password := common.Decode(encryptedPassword) //get from server
@@ -394,7 +394,11 @@ func installPackages(target, server, mount string) {
 		switch installedPackages[i].AppType {
 		case "Printer":
 			beforebat = "Printer.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP)
+			if installedPackages[i].IP == "" {
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver)
+			} else {
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP)
+			}
 		default:
 			beforebat = "CTALAN.bat"
 			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].AppType, longSeed, shortSeed)
@@ -479,6 +483,7 @@ func saveTemporaryInfo() {
 	tempInfo.Packages = append(tempInfo.Packages, installedPackages...)
 	tempInfo.Server = common.CurrentOA
 	tempInfo.Computer = common.CurrentComputerInfo
+	tempInfo.MaintaskId = mainTask
 
 	// 序列化为JSON
 	jsonData, err := json.Marshal(tempInfo)
@@ -512,6 +517,7 @@ func (p *Deploy) LoadTemporaryInfo(path string) {
 	installedPackages = append(installedPackages, tempInfo.Packages...)
 	common.CurrentOA = tempInfo.Server
 	common.CurrentComputerInfo = tempInfo.Computer
+	mainTask = tempInfo.MaintaskId
 }
 
 func rebootForInstall() {
