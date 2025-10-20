@@ -1,10 +1,12 @@
 package deploy
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -81,14 +83,8 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
-	// 配置参数
-	server, tempMount, remotePath, ret := mount()
-	if !ret {
-		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
-		return
-	}
-
-	paths := api.GetCodesByGroup("COMMON_BAT_DEPLOY_PATH")
+	//1. 下载安装脚本以及安装包
+	paths := api.GetCodesByGroup("COMMON_BAT_RECOVERY_PATH")
 
 	if len(paths) == 0 {
 		setAllStatusFail("get common bat files path failed")
@@ -97,14 +93,99 @@ func (p *Deploy) DoInstall() {
 
 	src := paths[0].Name
 	target := "C:/Temp/tool"
-	_, err = os.Stat(target)
+	_, exitErr := os.Stat(target)
 
-	if os.IsNotExist(err) {
+	if os.IsNotExist(exitErr) {
 		if err := os.MkdirAll(target, 0755); err != nil {
 			common.AppLogger.Error(fmt.Sprintf("create local temp folder failed: %v", err))
 			setAllStatusFail("create local temp folder failed")
 			return
 		}
+	}
+
+	switch common.CurrentOA.StorageType {
+	case "SMB":
+		smbInstall(target, src)
+		break
+	case "NGINX":
+		nginxInstall(target, src)
+		break
+	default:
+		smbInstall(target, src)
+	}
+}
+
+// 下载文件并使用Basic Auth认证
+func downloadFileWithBasicAuth(url, username, password, outputFilePath string) error {
+	// 创建请求
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %v", err)
+	}
+
+	// 添加Basic Auth认证头
+	auth := username + ":" + password
+	encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
+	req.Header.Add("Authorization", "Basic "+encodedAuth)
+
+	// 发送请求
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("请求失败: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("请求失败，状态码: %d", resp.StatusCode)
+	}
+
+	// 创建输出文件
+	outFile, err := os.Create(outputFilePath)
+	if err != nil {
+		return fmt.Errorf("创建文件失败: %v", err)
+	}
+	defer outFile.Close()
+
+	// 将响应内容写入文件
+	_, err = io.Copy(outFile, resp.Body)
+	if err != nil {
+		return fmt.Errorf("写入文件失败: %v", err)
+	}
+
+	fmt.Printf("文件下载成功: %s\n", outputFilePath)
+	return nil
+}
+
+func nginxInstall(target, src string) {
+
+	beforeBats := api.GetCodesByGroup("COMMON_BAT")
+	for _, bat := range beforeBats {
+		//Copy bat file that will run first before running app bat
+		localPath := filepath.Join(target, bat.Name)
+		// nginx 下载路径拼接
+		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, src, bat.Name)
+		// 下载 downloadUrl 的文件
+		downError := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), localPath)
+		if downError != nil {
+			common.AppLogger.Error(fmt.Sprintf("copy file %s failed: %v", downloadUrl, downError))
+			continue
+		}
+
+		common.AppLogger.Info(fmt.Sprintf("copy file %s successful", path.Join(src, bat.Name)))
+	}
+
+	//2. 执行安装
+	installPackages(target, common.CurrentOA.ServerName, "")
+}
+
+func smbInstall(target, src string) {
+	server := common.CurrentOA.ServerName
+	tempMount, remotePath, ret := mount()
+	if !ret {
+		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+		return
 	}
 
 	beforeBats := api.GetCodesByGroup("COMMON_BAT")
@@ -119,7 +200,7 @@ func (p *Deploy) DoInstall() {
 		source := filepath.Join(tempMount, filepath.Base(remotePath), src, bat.Name)
 		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
 
-		_, err = os.Stat(source)
+		_, err := os.Stat(source)
 
 		if os.IsNotExist(err) {
 			common.AppLogger.Error(fmt.Sprintf("%s source is not exist.", source))
@@ -137,7 +218,7 @@ func (p *Deploy) DoInstall() {
 	installPackages(target, server, tempMount)
 }
 
-func mount() (string, string, string, bool) {
+func mount() (string, string, bool) {
 	server := ""
 	// if common.CurrentOA.IP != "" {
 	// 	server = common.CurrentOA.IP
@@ -161,23 +242,27 @@ func mount() (string, string, string, bool) {
 	if output, err := exec.Command("cmd", "/C", cmdMount).CombinedOutput(); err != nil {
 		common.AppLogger.Error(fmt.Sprintf("mount OA Server failed: %v\n error: %s\n", err, common.DecodeByLocale(output)))
 		setAllStatusFail("can't connect to OA Server")
-		return "", "", "", false
+		return "", "", false
 	}
 
 	common.AppLogger.Info("mount OA Server successful")
-	return server, tempMount, remotePath, true
+	return tempMount, remotePath, true
 }
 
 func (p *Deploy) InstallAfterReboot() {
-	server, _, tempMount, ret := mount()
-	if !ret {
-		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
-		return
+	server := common.CurrentOA.ServerName
+
+	var tempMount string
+	if common.CurrentOA.StorageType != "NGINX" {
+		_, m, ret := mount()
+		if !ret {
+			defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+			return
+		}
+		tempMount = m
 	}
 
 	target := "C:/Temp/tool"
-
-	var _ string = tempMount
 	installPackages(target, server, tempMount)
 }
 
@@ -291,17 +376,24 @@ func installRU(dir, mount string) error {
 	url := ru.InstallPath
 
 	src := filepath.Join(dir, filepath.Base(url))
-	source := filepath.Join(mount, url)
-	cmdCopy := fmt.Sprintf("copy %s %s", source, src)
+	var err error
+	switch common.CurrentOA.StorageType {
+	case "SMB":
+		err = smbCopyRUService(mount, url, src)
+	case "NGINX":
+		err = downloadFileWithBasicAuth(url, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), src)
+	default:
+		err = smbCopyRUService(mount, url, src)
+	}
 
-	if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
-		common.AppLogger.Error(fmt.Sprintf("%s copy ruservice.exe failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
-		return fmt.Errorf("%s copy ruservice.exe failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output))
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("download ruservice failed: %v", err))
+		return err
 	}
 
 	target := "C:\\Program Files\\RU\\ruservice.exe"
 	targetDir := filepath.Dir(target)
-	_, err := os.Stat(targetDir)
+	_, err = os.Stat(targetDir)
 
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(targetDir, 0755); err != nil {
@@ -337,6 +429,17 @@ func installRU(dir, mount string) error {
 	err = createRUService("RUService", target)
 
 	return err
+}
+
+func smbCopyRUService(mount string, url string, src string) error {
+	source := filepath.Join(mount, url)
+	cmdCopy := fmt.Sprintf("copy %s %s", source, src)
+
+	if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("%s copy ruservice.exe failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
+		return fmt.Errorf("%s copy ruservice.exe failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output))
+	}
+	return nil
 }
 
 func installPackages(target, server, mount string) {
