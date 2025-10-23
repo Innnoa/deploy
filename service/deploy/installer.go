@@ -653,62 +653,26 @@ func setAllStatusFail(reason string) {
 	}
 }
 
-func deleteUsingWalkDir(rootPath string) error {
-	// 先检查路径是否存在，避免不必要的遍历
-	if _, err := os.Stat(rootPath); errors.Is(err, os.ErrNotExist) {
-		common.AppLogger.Error(fmt.Sprintf("路径 %s 不存在\n", rootPath))
-		return nil
-	}
-
-	var dirsToRemove []string // 用于记录需要删除的目录
-
-	err := filepath.WalkDir(rootPath, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			// 处理遍历过程中可能出现的错误（如权限不足）
-			common.AppLogger.Error(fmt.Sprintf("访问路径 %s 时出错: %v\n", path, err))
-			// 可以选择返回err以终止遍历，或返回nil跳过该项继续
-			return nil
-		}
-
-		if path == rootPath {
-			// 跳过根目录本身，最后处理
-			return nil
-		}
-
-		if d.IsDir() {
-			// 如果是子目录，先记录下来，后续逆序删除
-			dirsToRemove = append(dirsToRemove, path)
-			// 目录内的内容会由 WalkDir 继续遍历
-		} else {
-			// 如果是文件，直接删除
-			common.AppLogger.Error(fmt.Sprintf("删除文件: %s\n", path))
-			if err := os.Remove(path); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-
+func deleteTempFiles(dir string) error {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("读取目录失败: %w", err)
 	}
 
-	// 逆序删除所有子目录（从最深层的开始）
-	for i := len(dirsToRemove) - 1; i >= 0; i-- {
-		common.AppLogger.Info(fmt.Sprintf("删除目录: %s\n", dirsToRemove[i]))
-		if err := os.Remove(dirsToRemove[i]); err != nil {
-			return err
+	// 遍历并删除每个子项
+	for _, entry := range entries {
+		fullPath := filepath.Join(dir, entry.Name())
+		// 递归删除子项（文件或目录）
+		if err := os.RemoveAll(fullPath); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", fullPath, err))
 		}
 	}
 
-	// // 最后删除根目录
-	// fmt.Printf("删除根目录: %s\n", rootPath)
-	// return os.Remove(rootPath)
 	return nil
 }
 
 func (p *Deploy) DeleteTempFiles() error {
-	err := deleteUsingWalkDir("C:\\Temp\\tool")
+	err := deleteTempFiles("C:\\Temp\\tool")
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
 	}
@@ -788,5 +752,8 @@ func (p *Deploy) CancelInatallation() {
 			api.CancelInstallation(app)
 		}
 	}
+
+	p.DeleteTempFiles()
+
 	os.Exit(0)
 }

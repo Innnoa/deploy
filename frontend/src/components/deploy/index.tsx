@@ -195,7 +195,7 @@ const columns = [
       },
       onOk: () => {
           CancelInatallation();
-          DeleteTempFiles();
+          // DeleteTempFiles();
           // (window as any).runtime?.Quit();
       }
     });
