@@ -482,8 +482,6 @@ func smbDownloadInstallFiles(target, mount string, pkg common.PackageInfo, app c
 			}
 			if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
 				common.AppLogger.Error(fmt.Sprintf("%s copy printer common bat files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
-
-				setPakcageStatusFailed(&pkg, fmt.Errorf("copy printer common bat files failed, %v", err), app)
 				continue
 			}
 
@@ -502,8 +500,6 @@ func smbDownloadInstallFiles(target, mount string, pkg common.PackageInfo, app c
 	}
 	if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
 		common.AppLogger.Error(fmt.Sprintf("%s copy package files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
-
-		setPakcageStatusFailed(&pkg, fmt.Errorf("copy package files files failed, %v", err), app)
 		return err
 	}
 
@@ -538,7 +534,6 @@ func nginxDownloadInstallFiles(target string, pkg common.PackageInfo, app common
 	url, err := url.Parse(pkg.Path)
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("URL 解析失败: %v", err))
-		setPakcageStatusFailed(&pkg, fmt.Errorf("download package files failed, %v", err), app)
 		return err
 	}
 	common.AppLogger.Info(fmt.Sprintf("URL 解析成功: %s", url.String()))
@@ -546,7 +541,6 @@ func nginxDownloadInstallFiles(target string, pkg common.PackageInfo, app common
 	downError := nginxDownloader.DownloadFromNginx(downloadUrl, target)
 	if downError != nil {
 		common.AppLogger.Error(fmt.Sprintf("文件 %s 拷贝 失败: %v", downloadUrl, downError))
-		setPakcageStatusFailed(&pkg, fmt.Errorf("download package files failed, %v", downError), app)
 		return downError
 	}
 
