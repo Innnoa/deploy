@@ -2,7 +2,7 @@
 GITLAB_HOST = http://git.deepi.tech:888
 PROJECT_ID  = 702
 PACKAGE_NAME = Deploy
-VERSION = 0.9.0.2510100
+VERSION = 0.9.0.2510231
 BUILD_DIR = build/bin
 BINARY_NAME = Deploy.exe
 BASE_URL = https://deploy.ru.com/api-system
@@ -19,6 +19,11 @@ all: build upload
 # 构建 Wails 应用
 build:
 	wails build -webview2 Embed -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL)"
+
+build-linux:
+	set GOOS=linux
+	set GOARCH=amd64
+	wails build -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL)"
 
 # 上传到 GitLab Generic Package Registry
 upload:

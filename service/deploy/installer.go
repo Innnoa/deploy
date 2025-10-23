@@ -444,15 +444,15 @@ func smbCopyRUService(mount string, url string, src string) error {
 }
 
 // 下载安装文件到本地
-func downloadInstallFiles(target, mount string, pkg common.PackageInfo, app common.AppStatus) error {
+func downloadInstallFiles(target, mount string, pkg common.PackageInfo) error {
 	var err error
 	switch common.CurrentOA.StorageType {
 	case "SMB":
-		err = smbDownloadInstallFiles(target, mount, pkg, app)
+		err = smbDownloadInstallFiles(target, mount, pkg)
 	case "NGINX":
-		err = nginxDownloadInstallFiles(target, pkg, app)
+		err = nginxDownloadInstallFiles(target, pkg)
 	default:
-		err = smbDownloadInstallFiles(target, mount, pkg, app)
+		err = smbDownloadInstallFiles(target, mount, pkg)
 	}
 
 	if err != nil {
@@ -462,7 +462,7 @@ func downloadInstallFiles(target, mount string, pkg common.PackageInfo, app comm
 	}
 }
 
-func smbDownloadInstallFiles(target, mount string, pkg common.PackageInfo, app common.AppStatus) error {
+func smbDownloadInstallFiles(target, mount string, pkg common.PackageInfo) error {
 	appType := pkg.AppType
 	if appType == "Printer" {
 		// 额外需要下载文件
@@ -498,7 +498,17 @@ func smbDownloadInstallFiles(target, mount string, pkg common.PackageInfo, app c
 		common.AppLogger.Error(fmt.Sprintf("%s source is not exist.", srcPath))
 		return err
 	}
-	if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
+
+	// 执行命令
+	cmd := exec.Command("cmd", "/C", cmdCopy)
+	output, err := cmd.CombinedOutput()
+
+	// 获取命令的退出状态码
+	exitCode := cmd.ProcessState.ExitCode()
+
+	common.AppLogger.Error(fmt.Sprintf("%s copy package files exitCode: %d, output: \n %s", cmdCopy, exitCode, common.DecodeByLocale(output)))
+	// 判断：只有当退出码大于等于8时，才认为是需要处理的错误
+	if err != nil && exitCode >= 8 {
 		common.AppLogger.Error(fmt.Sprintf("%s copy package files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
 		return err
 	}
@@ -508,7 +518,7 @@ func smbDownloadInstallFiles(target, mount string, pkg common.PackageInfo, app c
 	return nil
 }
 
-func nginxDownloadInstallFiles(target string, pkg common.PackageInfo, app common.AppStatus) error {
+func nginxDownloadInstallFiles(target string, pkg common.PackageInfo) error {
 	nginxDownloader := common.NewNginxDownloader(5, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password))
 	appType := pkg.AppType
 	if appType == "Printer" {
@@ -590,7 +600,7 @@ func installPackages(target, server, mount string) {
 		}
 
 		var err error
-		err = downloadInstallFiles(target, mount, installedPackages[i], app)
+		err = downloadInstallFiles(target, mount, installedPackages[i])
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("download package files failed:", err))
 			setPakcageStatusFailed(&installedPackages[i], err, app)

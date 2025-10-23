@@ -20,7 +20,18 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 		for _, p := range selectedNetworkPrinters {
 			for _, value := range networkPrinterDriverList {
 				if p.ID == value.ID {
-					pi := common.PackageInfo{ID: value.AppId, AppName: value.AppName, AppType: value.AppType, Path: value.Path, WinFile: value.WinFile, UOSFile: value.UOSFile, KylinFile: value.KylinFile, PolNo: p.PolNo, IP: p.IP}
+					pi := common.PackageInfo{
+						ID:            value.AppId,
+						AppName:       value.AppName,
+						AppType:       value.AppType,
+						Path:          value.Path,
+						WinFile:       value.WinFile,
+						UOSFile:       value.UOSFile,
+						KylinFile:     value.KylinFile,
+						PolNo:         p.PolNo,
+						IP:            p.IP,
+						PrinterName:   value.PrinterName,
+						PrinterDriver: value.PrinterDriver}
 					installedPackages = append(installedPackages, pi)
 					break
 				}

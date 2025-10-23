@@ -24,17 +24,19 @@ type ComputerInfo struct {
 }
 
 type PrinterWithPackage struct {
-	ID        string `json:"id"`
-	PolNo     string `json:"pol"`
-	IP        string `json:"ip"`
-	AppId     string `json:"appid"`
-	AppName   string `json:"appname"`
-	BrandId   string `json:"brandId"`
-	AppType   string `json:"apptype"`
-	Path      string `json:"installpath"`
-	WinFile   string `json:"winfile"`
-	UOSFile   string `json:"uosdeb"`
-	KylinFile string `json:"kylindeb"`
+	ID            string `json:"id"`
+	PolNo         string `json:"pol"`
+	IP            string `json:"ip"`
+	AppId         string `json:"appid"`
+	AppName       string `json:"appname"`
+	BrandId       string `json:"brandId"`
+	AppType       string `json:"apptype"`
+	Path          string `json:"installpath"`
+	WinFile       string `json:"winfile"`
+	UOSFile       string `json:"uosdeb"`
+	KylinFile     string `json:"kylindeb"`
+	PrinterName   string `json:"printerName"`
+	PrinterDriver string `json:"printerDriver"`
 }
 
 type Printer struct {
