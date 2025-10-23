@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -84,7 +85,7 @@ func (p *Deploy) DoInstall() {
 	}
 
 	//1. 下载安装脚本以及安装包
-	paths := api.GetCodesByGroup("COMMON_BAT_RECOVERY_PATH")
+	paths := api.GetCodesByGroup("COMMON_BAT_DEPLOY_PATH")
 
 	if len(paths) == 0 {
 		setAllStatusFail("get common bat files path failed")
@@ -106,10 +107,8 @@ func (p *Deploy) DoInstall() {
 	switch common.CurrentOA.StorageType {
 	case "SMB":
 		smbInstall(target, src)
-		break
 	case "NGINX":
 		nginxInstall(target, src)
-		break
 	default:
 		smbInstall(target, src)
 	}
@@ -381,7 +380,9 @@ func installRU(dir, mount string) error {
 	case "SMB":
 		err = smbCopyRUService(mount, url, src)
 	case "NGINX":
-		err = downloadFileWithBasicAuth(url, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), src)
+		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, url)
+		downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
+		err = downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), src)
 	default:
 		err = smbCopyRUService(mount, url, src)
 	}
@@ -442,6 +443,117 @@ func smbCopyRUService(mount string, url string, src string) error {
 	return nil
 }
 
+// 下载安装文件到本地
+func downloadInstallFiles(target, mount string, pkg common.PackageInfo, app common.AppStatus) error {
+	var err error
+	switch common.CurrentOA.StorageType {
+	case "SMB":
+		err = smbDownloadInstallFiles(target, mount, pkg, app)
+	case "NGINX":
+		err = nginxDownloadInstallFiles(target, pkg, app)
+	default:
+		err = smbDownloadInstallFiles(target, mount, pkg, app)
+	}
+
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func smbDownloadInstallFiles(target, mount string, pkg common.PackageInfo, app common.AppStatus) error {
+	appType := pkg.AppType
+	if appType == "Printer" {
+		// 额外需要下载文件
+		printerFiles := api.GetCodesByGroup("PRINTER_COMMON_FILES")
+		for _, file := range printerFiles {
+			// 提取文件名
+			filename := filepath.Base(file.Name)
+			localPath := filepath.Join(target, filename)
+			source := filepath.Join(mount, file.Name)
+			cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
+
+			_, err := os.Stat(source)
+
+			if os.IsNotExist(err) {
+				common.AppLogger.Error(fmt.Sprintf("%s source is not exist.", source))
+				continue
+			}
+			if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
+				common.AppLogger.Error(fmt.Sprintf("%s copy printer common bat files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
+
+				setPakcageStatusFailed(&pkg, fmt.Errorf("copy printer common bat files failed, %v", err), app)
+				continue
+			}
+
+			common.AppLogger.Info(fmt.Sprintf("common printer bat file %s copy successful", file.Name))
+		}
+
+	}
+
+	srcPath := filepath.Join(mount, pkg.Path)
+	cmdCopy := fmt.Sprintf("robocopy %s %s  /e /z /mt:16", srcPath, target)
+	_, err := os.Stat(srcPath)
+
+	if os.IsNotExist(err) {
+		common.AppLogger.Error(fmt.Sprintf("%s source is not exist.", srcPath))
+		return err
+	}
+	if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("%s copy package files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
+
+		setPakcageStatusFailed(&pkg, fmt.Errorf("copy package files files failed, %v", err), app)
+		return err
+	}
+
+	common.AppLogger.Info(fmt.Sprintf("package files %s copy successful", pkg.Path))
+
+	return nil
+}
+
+func nginxDownloadInstallFiles(target string, pkg common.PackageInfo, app common.AppStatus) error {
+	nginxDownloader := common.NewNginxDownloader(5, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password))
+	appType := pkg.AppType
+	if appType == "Printer" {
+		// 额外需要下载文件
+		printerFiles := api.GetCodesByGroup("PRINTER_COMMON_FILES")
+		for _, file := range printerFiles {
+			// 提取文件名
+			filename := filepath.Base(file.Name)
+			localPath := filepath.Join(target, filename)
+			// nginx 下载路径拼接
+			downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, file.Name)
+			downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
+			downError := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), localPath)
+			if downError != nil {
+				common.AppLogger.Error(fmt.Sprintf("\"Printer 类型 文件 %s 拷贝 失败: %v", downloadUrl, downError))
+				continue
+			}
+
+			common.AppLogger.Info(fmt.Sprintf("Printer 类型 文件 %s 拷贝成功", file.Name))
+		}
+	}
+
+	url, err := url.Parse(pkg.Path)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("URL 解析失败: %v", err))
+		setPakcageStatusFailed(&pkg, fmt.Errorf("download package files failed, %v", err), app)
+		return err
+	}
+	common.AppLogger.Info(fmt.Sprintf("URL 解析成功: %s", url.String()))
+	downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, url.String())
+	downError := nginxDownloader.DownloadFromNginx(downloadUrl, target)
+	if downError != nil {
+		common.AppLogger.Error(fmt.Sprintf("文件 %s 拷贝 失败: %v", downloadUrl, downError))
+		setPakcageStatusFailed(&pkg, fmt.Errorf("download package files failed, %v", downError), app)
+		return downError
+	}
+
+	common.AppLogger.Info(fmt.Sprintf("文件 %s 拷贝成功", downloadUrl))
+	return nil
+}
+
 func installPackages(target, server, mount string) {
 	for i := range installedPackages {
 		if cancelling {
@@ -474,13 +586,7 @@ func installPackages(target, server, mount string) {
 			err0 := installRU(target, mount)
 			if err0 != nil {
 				common.AppLogger.Error(fmt.Sprintln("install ruservice failed:", err0))
-				installedPackages[i].Status = common.Failed.String()
-				installedPackages[i].Error = err0.Error()
-				var failedapp common.FailedAppStatus
-				failedapp.ID = app.ID
-				failedapp.MainTask = app.MainTask
-				failedapp.Msg = installedPackages[i].Error
-				api.InstallationFailed(failedapp)
+				setPakcageStatusFailed(&installedPackages[i], err0, app)
 			} else {
 				installedPackages[i].Status = common.Completed.String()
 				api.InstallationSuccess(app)
@@ -489,11 +595,17 @@ func installPackages(target, server, mount string) {
 			continue
 		}
 
+		var err error
+		err = downloadInstallFiles(target, mount, installedPackages[i], app)
+		if err != nil {
+			common.AppLogger.Error(fmt.Sprintln("download package files failed:", err))
+			setPakcageStatusFailed(&installedPackages[i], err, app)
+			continue
+		}
 		beforebat := ""
 		cleanPath := filepath.Clean(installedPackages[i].Path)
 		shortSeed := common.CurrentComputerInfo.Seed[0:4]
 		longSeed := common.CurrentComputerInfo.Seed
-		var err error
 		switch installedPackages[i].AppType {
 		case "Printer":
 			beforebat = "Printer.bat"
@@ -509,13 +621,7 @@ func installPackages(target, server, mount string) {
 
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("failed to install the application:", err))
-			installedPackages[i].Status = common.Failed.String()
-			installedPackages[i].Error = err.Error()
-			var failedapp common.FailedAppStatus
-			failedapp.ID = app.ID
-			failedapp.MainTask = app.MainTask
-			failedapp.Msg = installedPackages[i].Error
-			api.InstallationFailed(failedapp)
+			setPakcageStatusFailed(&installedPackages[i], err, app)
 			continue
 		}
 
@@ -531,6 +637,16 @@ func installPackages(target, server, mount string) {
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 }
 
+func setPakcageStatusFailed(pkg *common.PackageInfo, err error, app common.AppStatus) {
+	pkg.Status = common.Failed.String()
+	pkg.Error = err.Error()
+	var failedapp common.FailedAppStatus
+	failedapp.ID = app.ID
+	failedapp.MainTask = app.MainTask
+	failedapp.Msg = pkg.Error
+	api.InstallationFailed(failedapp)
+}
+
 func setAllStatusFail(reason string) {
 	for i := range installedPackages {
 		installedPackages[i].Status = common.Failed.String()
@@ -543,26 +659,62 @@ func setAllStatusFail(reason string) {
 	}
 }
 
-func deleteTempFiles(dir string) error {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return fmt.Errorf("读取目录失败: %w", err)
+func deleteUsingWalkDir(rootPath string) error {
+	// 先检查路径是否存在，避免不必要的遍历
+	if _, err := os.Stat(rootPath); errors.Is(err, os.ErrNotExist) {
+		common.AppLogger.Error(fmt.Sprintf("路径 %s 不存在\n", rootPath))
+		return nil
 	}
 
-	// 遍历并删除每个子项
-	for _, entry := range entries {
-		fullPath := filepath.Join(dir, entry.Name())
-		// 递归删除子项（文件或目录）
-		if err := os.RemoveAll(fullPath); err != nil {
-			common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", fullPath, err))
+	var dirsToRemove []string // 用于记录需要删除的目录
+
+	err := filepath.WalkDir(rootPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			// 处理遍历过程中可能出现的错误（如权限不足）
+			common.AppLogger.Error(fmt.Sprintf("访问路径 %s 时出错: %v\n", path, err))
+			// 可以选择返回err以终止遍历，或返回nil跳过该项继续
+			return nil
+		}
+
+		if path == rootPath {
+			// 跳过根目录本身，最后处理
+			return nil
+		}
+
+		if d.IsDir() {
+			// 如果是子目录，先记录下来，后续逆序删除
+			dirsToRemove = append(dirsToRemove, path)
+			// 目录内的内容会由 WalkDir 继续遍历
+		} else {
+			// 如果是文件，直接删除
+			common.AppLogger.Error(fmt.Sprintf("删除文件: %s\n", path))
+			if err := os.Remove(path); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// 逆序删除所有子目录（从最深层的开始）
+	for i := len(dirsToRemove) - 1; i >= 0; i-- {
+		common.AppLogger.Info(fmt.Sprintf("删除目录: %s\n", dirsToRemove[i]))
+		if err := os.Remove(dirsToRemove[i]); err != nil {
+			return err
 		}
 	}
 
+	// // 最后删除根目录
+	// fmt.Printf("删除根目录: %s\n", rootPath)
+	// return os.Remove(rootPath)
 	return nil
 }
 
 func (p *Deploy) DeleteTempFiles() error {
-	err := deleteTempFiles("C:\\Temp\\tool")
+	err := deleteUsingWalkDir("C:\\Temp\\tool")
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
 	}
