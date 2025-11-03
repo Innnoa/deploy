@@ -167,7 +167,7 @@ func nginxInstall(target string, bats []common.GroupCode) {
 		//Copy bat file that will run first before running app bat
 		localPath := filepath.Join(target, filepath.Base(bat.Name))
 		// nginx 下载路径拼接
-		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, bat.Name)
+		downloadUrl := fmt.Sprintf("http://%s:%s%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, common.CurrentOA.BaseUrl, bat.Name)
 		// 下载 downloadUrl 的文件
 		downError := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), localPath)
 		if downError != nil {
@@ -377,7 +377,7 @@ func installRU(dir, mount string) error {
 	case "SMB":
 		err = smbCopyRUService(mount, url, src)
 	case "NGINX":
-		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, url)
+		downloadUrl := fmt.Sprintf("http://%s:%s%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, common.CurrentOA.BaseUrl, url)
 		downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
 		err = downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), src)
 	default:
@@ -526,7 +526,7 @@ func nginxDownloadInstallFiles(target string, pkg common.PackageInfo) error {
 			filename := filepath.Base(file.Name)
 			localPath := filepath.Join(target, filename)
 			// nginx 下载路径拼接
-			downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, file.Name)
+			downloadUrl := fmt.Sprintf("http://%s:%s%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, common.CurrentOA.BaseUrl, file.Name)
 			downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
 			downError := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), localPath)
 			if downError != nil {
@@ -544,7 +544,7 @@ func nginxDownloadInstallFiles(target string, pkg common.PackageInfo) error {
 		return err
 	}
 	common.AppLogger.Info(fmt.Sprintf("URL 解析成功: %s", url.String()))
-	downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, url.String())
+	downloadUrl := fmt.Sprintf("http://%s:%s%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, common.CurrentOA.BaseUrl, url.String())
 	downError := nginxDownloader.DownloadFromNginx(downloadUrl, target)
 	if downError != nil {
 		common.AppLogger.Error(fmt.Sprintf("文件 %s 拷贝 失败: %v", downloadUrl, downError))

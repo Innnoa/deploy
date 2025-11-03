@@ -7,6 +7,7 @@ type OAServer struct {
 	Port        string `json:"nginxPort"`
 	UserName    string `json:"username"`
 	Password    string `json:"password"`
+	BaseUrl     string `json:"baseUrl"`
 	RootPath    string `json:"rootPath"`
 	StorageType string `json:"storageType"`
 }
