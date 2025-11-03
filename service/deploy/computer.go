@@ -1,11 +1,18 @@
 package deploy
 
 import (
+	"fmt"
 	"net"
-	"os"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
+	"strings"
 )
+
+type DiskInfo struct {
+	DeviceID  string // 盘符（如 "C"）
+	FreeSpace string // 剩余空间（GB）
+	Size      string // 总容量（GB）
+}
 
 func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
 	kbcode := getLastKBCode()
@@ -16,11 +23,6 @@ func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
 
 func (c *Deploy) CheckSeedLabel() bool {
 	return checkSeedFile()
-}
-
-func getComputerName() string {
-	name := os.Getenv("COMPUTERNAME")
-	return name
 }
 
 func getIP() string {
@@ -66,4 +68,26 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 	}
 
 	return common.CurrentComputerInfo
+}
+
+func setDiskInfo(disks []DiskInfo) {
+	common.DetailPCInfo.NumOfDrive = fmt.Sprintf("%d", len(disks))
+	if len(disks) > 0 {
+		common.DetailPCInfo.SizeOfDrive1 = disks[0].Size
+
+		if len(disks) > 1 {
+			common.DetailPCInfo.SizeOfDrive2 = disks[1].Size
+		}
+
+		for _, d := range disks {
+			if strings.EqualFold(d.DeviceID, "C") {
+				common.DetailPCInfo.FreeSpaceC = d.FreeSpace
+			} else if strings.EqualFold(d.DeviceID, "D") {
+				common.DetailPCInfo.FreeSpaceD = d.FreeSpace
+			}
+		}
+
+		common.DetailPCInfo.LastDrive = disks[len(disks)-1].DeviceID
+		common.DetailPCInfo.SystemDrive = getOpSystemInfo()
+	}
 }

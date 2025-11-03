@@ -64,10 +64,9 @@ type Win32_LogicalDisk struct {
 	Size      uint64 // 总容量（字节）
 }
 
-type DiskInfo struct {
-	DeviceID  string // 盘符（如 "C"）
-	FreeSpace string // 剩余空间（GB）
-	Size      string // 总容量（GB）
+func getComputerName() string {
+	name := os.Getenv("COMPUTERNAME")
+	return name
 }
 
 func getUploadInfo() common.DetailComputerInfo {
@@ -77,25 +76,7 @@ func getUploadInfo() common.DetailComputerInfo {
 	common.DetailPCInfo.SP = common.CurrentComputerInfo.Seed[len(common.CurrentComputerInfo.Seed)-3:]
 
 	disks := getDiskInfo()
-	common.DetailPCInfo.NumOfDrive = fmt.Sprintf("%d", len(disks))
-	if len(disks) > 0 {
-		common.DetailPCInfo.SizeOfDrive1 = disks[0].Size
-
-		if len(disks) > 1 {
-			common.DetailPCInfo.SizeOfDrive2 = disks[1].Size
-		}
-
-		for _, d := range disks {
-			if strings.EqualFold(d.DeviceID, "C") {
-				common.DetailPCInfo.FreeSpaceC = d.FreeSpace
-			} else if strings.EqualFold(d.DeviceID, "D") {
-				common.DetailPCInfo.FreeSpaceD = d.FreeSpace
-			}
-		}
-
-		common.DetailPCInfo.LastDrive = disks[len(disks)-1].DeviceID
-		common.DetailPCInfo.SystemDrive = getOpSystemInfo()
-	}
+	setDiskInfo(disks)
 
 	cpu := getCPUInfo()
 	common.DetailPCInfo.CpuType = fmt.Sprintf("%s @ %.2f GHz", cpu.Name, cpu.MaxClockSpeed)
@@ -259,6 +240,11 @@ func getLastKBCode() string {
 	return common.DetailPCInfo.KBCode
 }
 
+func getCreationTime(fileInfo os.FileInfo) time.Time {
+	winAttr := fileInfo.Sys().(*syscall.Win32FileAttributeData)
+	return time.Unix(0, winAttr.CreationTime.Nanoseconds())
+}
+
 func checkSeedFile() bool {
 	filename := fmt.Sprintf("C:\\%s.seedlabel.txt", common.CurrentSeed.SeedLabel)
 	fileInfo, err := os.Stat(filename)
@@ -274,6 +260,7 @@ func checkSeedFile() bool {
 
 	strModTime := modTime.Format("2006-01-02 15:04:05")
 	strCreateTime := createTime.Format("2006-01-02 15:04:05")
+
 	common.AppLogger.Info(fmt.Sprintf("seedlabel file create time: %s\n", createTime))
 	common.AppLogger.Info(fmt.Sprintf("seedlabel file modify time: %s\n", strModTime))
 
