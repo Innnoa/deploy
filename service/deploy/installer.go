@@ -84,15 +84,6 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
-	//1. 下载安装脚本以及安装包
-	paths := api.GetCodesByGroup("COMMON_BAT_DEPLOY_PATH")
-
-	if len(paths) == 0 {
-		setAllStatusFail("get common bat files path failed")
-		return
-	}
-
-	src := paths[0].Name
 	target := "C:/Temp/tool"
 	_, exitErr := os.Stat(target)
 
@@ -104,13 +95,27 @@ func (p *Deploy) DoInstall() {
 		}
 	}
 
+	appBats := api.GetCodesByGroup("APP_COMMON_FILES")
+	if len(appBats) == 0 {
+		setAllStatusFail("get APP_COMMON_FILES bat files infomation failed")
+		return
+	}
+
+	printerBats := api.GetCodesByGroup("PRINTER_COMMON_FILES")
+	if len(printerBats) == 0 {
+		setAllStatusFail("get PRINTER_COMMON_FILES bat files infomation failed")
+		return
+	}
+
+	beforeBats := append(appBats, printerBats...)
+
 	switch common.CurrentOA.StorageType {
 	case "SMB":
-		smbInstall(target, src)
+		smbInstall(target, beforeBats)
 	case "NGINX":
-		nginxInstall(target, src)
+		nginxInstall(target, beforeBats)
 	default:
-		smbInstall(target, src)
+		smbInstall(target, beforeBats)
 	}
 }
 
@@ -157,14 +162,12 @@ func downloadFileWithBasicAuth(url, username, password, outputFilePath string) e
 	return nil
 }
 
-func nginxInstall(target, src string) {
-
-	beforeBats := api.GetCodesByGroup("COMMON_BAT")
-	for _, bat := range beforeBats {
+func nginxInstall(target string, bats []common.GroupCode) {
+	for _, bat := range bats {
 		//Copy bat file that will run first before running app bat
-		localPath := filepath.Join(target, bat.Name)
+		localPath := filepath.Join(target, filepath.Base(bat.Name))
 		// nginx 下载路径拼接
-		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, src, bat.Name)
+		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, bat.Name)
 		// 下载 downloadUrl 的文件
 		downError := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), localPath)
 		if downError != nil {
@@ -172,31 +175,25 @@ func nginxInstall(target, src string) {
 			continue
 		}
 
-		common.AppLogger.Info(fmt.Sprintf("copy file %s successful", path.Join(src, bat.Name)))
+		common.AppLogger.Info(fmt.Sprintf("copy file %s successful", bat.Name))
 	}
 
 	//2. 执行安装
 	installPackages(target, common.CurrentOA.ServerName, "")
 }
 
-func smbInstall(target, src string) {
+func smbInstall(target string, bats []common.GroupCode) {
 	server := common.CurrentOA.ServerName
-	tempMount, remotePath, ret := mount()
+	tempMount, _, ret := mount()
 	if !ret {
 		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 		return
 	}
 
-	beforeBats := api.GetCodesByGroup("COMMON_BAT")
-	if len(beforeBats) == 0 {
-		setAllStatusFail("get common bat files infomation failed")
-		return
-	}
-
-	for _, bat := range beforeBats {
+	for _, bat := range bats {
 		//Copy bat file that will run first before running app bat
-		localPath := filepath.Join(target, bat.Name)
-		source := filepath.Join(tempMount, filepath.Base(remotePath), src, bat.Name)
+		localPath := filepath.Join(target, filepath.Base(bat.Name))
+		source := filepath.Join(tempMount, bat.Name)
 		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
 
 		_, err := os.Stat(source)
@@ -211,7 +208,7 @@ func smbInstall(target, src string) {
 			return
 		}
 
-		common.AppLogger.Info(fmt.Sprintf("common bat file %s copy successful", path.Join(src, bat.Name)))
+		common.AppLogger.Info(fmt.Sprintf("common bat file %s copy successful", bat.Name))
 	}
 
 	installPackages(target, server, tempMount)
@@ -607,20 +604,18 @@ func installPackages(target, server, mount string) {
 			continue
 		}
 		beforebat := ""
-		cleanPath := filepath.Clean(installedPackages[i].Path)
 		shortSeed := common.CurrentComputerInfo.Seed[0:4]
-		longSeed := common.CurrentComputerInfo.Seed
 		switch installedPackages[i].AppType {
 		case "Printer":
-			beforebat = "Printer.bat"
+			beforebat = "PrinterEntrance.bat"
 			if installedPackages[i].IP == "" {
-				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver)
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, shortSeed)
 			} else {
-				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP)
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP, shortSeed)
 			}
 		default:
-			beforebat = "CTALAN.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), server, common.CurrentOA.RootPath, cleanPath, installedPackages[i].WinFile, installedPackages[i].AppName, installedPackages[i].AppType, longSeed, shortSeed)
+			beforebat = "AppEntrance.bat"
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].WinFile, shortSeed)
 		}
 
 		if err != nil {
