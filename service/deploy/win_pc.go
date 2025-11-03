@@ -274,10 +274,10 @@ func checkSeedFile() bool {
 
 	strModTime := modTime.Format("2006-01-02 15:04:05")
 	strCreateTime := createTime.Format("2006-01-02 15:04:05")
-	fmt.Printf("修改时间: %s\n", strModTime)
-	fmt.Printf("创建时间: %s\n", strCreateTime)
+	common.AppLogger.Info(fmt.Sprintf("seedlabel file create time: %s\n", createTime))
+	common.AppLogger.Info(fmt.Sprintf("seedlabel file modify time: %s\n", strModTime))
 
-	return api.CheckSeedLabel(common.CurrentSeed.SeedLabel, strCreateTime, strModTime)
+	return api.CheckSeedLabel(common.CurrentSeed.SeedLabel, strModTime, strCreateTime)
 }
 
 func removeDuplicates(list []string) []string {
