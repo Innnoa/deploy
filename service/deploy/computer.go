@@ -1,17 +1,32 @@
 package deploy
 
 import (
-	"fmt"
 	"net"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
-	"strings"
 )
 
 type DiskInfo struct {
 	DeviceID  string // 盘符（如 "C"）
 	FreeSpace string // 剩余空间（GB）
 	Size      string // 总容量（GB）
+}
+
+// CPU 信息结构体
+type CPUInfo struct {
+	Name          string
+	MaxClockSpeed float32
+}
+
+// 内存信息结构体
+type MemoryInfo struct {
+	TotalPhysical int64 // GB
+}
+
+// boot信息结构体
+type SystemInfo struct {
+	BootMode string
+	Model    string // PC型号（如 "HP ProDesk 600 G3"）
 }
 
 func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
@@ -68,26 +83,4 @@ func (c *Deploy) GetComputerInfo() common.ComputerInfo {
 	}
 
 	return common.CurrentComputerInfo
-}
-
-func setDiskInfo(disks []DiskInfo) {
-	common.DetailPCInfo.NumOfDrive = fmt.Sprintf("%d", len(disks))
-	if len(disks) > 0 {
-		common.DetailPCInfo.SizeOfDrive1 = disks[0].Size
-
-		if len(disks) > 1 {
-			common.DetailPCInfo.SizeOfDrive2 = disks[1].Size
-		}
-
-		for _, d := range disks {
-			if strings.EqualFold(d.DeviceID, "C") {
-				common.DetailPCInfo.FreeSpaceC = d.FreeSpace
-			} else if strings.EqualFold(d.DeviceID, "D") {
-				common.DetailPCInfo.FreeSpaceD = d.FreeSpace
-			}
-		}
-
-		common.DetailPCInfo.LastDrive = disks[len(disks)-1].DeviceID
-		common.DetailPCInfo.SystemDrive = getOpSystemInfo()
-	}
 }

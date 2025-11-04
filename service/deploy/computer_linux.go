@@ -4,7 +4,9 @@
 package deploy
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,6 +18,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu" // 注意：推荐使用v3版本
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 type OEMInfo struct {
@@ -60,6 +65,27 @@ type DiskSpaceInfo struct {
 	Available  string
 	UsePercent string
 	MountPoint string
+}
+
+// 定义与Linux系统utmp结构体对应的Go结构体
+type Utmp struct {
+	Type    int16     // 记录类型
+	Pad1    [2]byte   // 对齐填充
+	Pid     int32     // 登录进程ID
+	Line    [32]byte  // 终端设备名（例如tty1, pts/0）
+	Id      [4]byte   // 终端名称缩写或inittab ID
+	User    [32]byte  // 用户名
+	Host    [256]byte // 远程主机名（如果是远程登录）
+	Exit    [2]int16  // 进程退出状态（由init设置）
+	Session int32     // 会话ID
+	Tv      Timeval   // 时间戳
+	AddrV6  [4]int32  // IPv6地址（网络字节序）
+	Pad2    [20]byte  // 保留字段
+}
+
+type Timeval struct {
+	Sec  int32 // 秒
+	Usec int32 // 微秒
 }
 
 func runCommand(command string, args ...string) (string, error) {
@@ -126,12 +152,16 @@ func getDiskInfo() []DiskInfo {
 	}
 
 	for _, device := range deviceList.BlockDevices {
-		common.AppLogger.Info(fmt.Sprintf("设备: %s, 类型: %s, 大小: %s\n", device.Name, device.Type, device.Size))
+		common.AppLogger.Info(fmt.Sprintf("设备: %s, 类型: %s, 大小: %s， 挂载: %s\n", device.Name, device.Type, device.Size, *device.Mountpoint))
 		if strings.EqualFold(device.Type, "disk") {
 			var disk DiskInfo
 			disk.DeviceID = device.Name
 			disk.Size = device.Size
 			var fs int = 0
+
+			if device.Mountpoint != nil && *device.Mountpoint == "/" {
+				common.DetailPCInfo.SystemDrive = device.Name
+			}
 
 			if len(device.Children) > 0 {
 				for _, child := range device.Children {
@@ -162,6 +192,27 @@ func getDiskInfo() []DiskInfo {
 	return disks
 }
 
+func setDiskInfo(disks []DiskInfo) {
+	common.DetailPCInfo.NumOfDrive = fmt.Sprintf("%d", len(disks))
+	if len(disks) > 0 {
+		common.DetailPCInfo.SizeOfDrive1 = disks[0].Size
+
+		if len(disks) > 1 {
+			common.DetailPCInfo.SizeOfDrive2 = disks[1].Size
+		}
+
+		for _, d := range disks {
+			if strings.EqualFold(d.DeviceID, "C") {
+				common.DetailPCInfo.FreeSpaceC = d.FreeSpace
+			} else if strings.EqualFold(d.DeviceID, "D") {
+				common.DetailPCInfo.FreeSpaceD = d.FreeSpace
+			}
+		}
+
+		common.DetailPCInfo.LastDrive = disks[len(disks)-1].DeviceID
+	}
+}
+
 func getComputerName() string {
 	hostname := os.Getenv("HOSTNAME")
 
@@ -181,7 +232,166 @@ func getUploadInfo() common.DetailComputerInfo {
 	common.DetailPCInfo.Seedlabel = common.CurrentComputerInfo.Seed
 	common.DetailPCInfo.SP = common.CurrentComputerInfo.Seed[len(common.CurrentComputerInfo.Seed)-3:]
 
+	disks := getDiskInfo()
+	setDiskInfo(disks)
+
+	cpu := getCPUInfo()
+	common.DetailPCInfo.CpuType = fmt.Sprintf("%s @ %.2f GHz", cpu.Name, cpu.MaxClockSpeed)
+	common.DetailPCInfo.CpuSpeed = fmt.Sprintf("%.2f GHz", cpu.MaxClockSpeed)
+
+	ram := getMemoryInfo()
+	common.DetailPCInfo.Ram = fmt.Sprintf("%d MB", ram.TotalPhysical)
+
+	sysInfo := getSystemInfo()
+	common.DetailPCInfo.BootEnv = sysInfo.BootMode
+	common.DetailPCInfo.PCModel = sysInfo.Model
+
+	common.DetailPCInfo.OS = getOS()
+
+	logonId, lastsignon := getLoginInfo()
+	common.DetailPCInfo.LogonId = logonId
+	common.DetailPCInfo.LastSignon = lastsignon
+
 	return common.DetailPCInfo
+}
+
+func getLoginInfo() (string, string) {
+	var username string = ""
+	var lastsignon string = ""
+
+	// 打开utmp文件
+	file, err := os.Open("/var/run/utmp")
+	if err != nil {
+		log.Fatalf("无法打开utmp文件: %v", err)
+	}
+	defer file.Close()
+
+	var utmp Utmp
+	binary.Size(utmp)
+
+	for {
+		// 读取一条utmp记录
+		err := binary.Read(file, binary.LittleEndian, &utmp)
+		if err != nil {
+			break // 可能已读到文件末尾
+		}
+
+		// 检查是否为用户登录记录（类型为USER_PROCESS，通常值为7）
+		if utmp.Type == 7 {
+			// 将字节数组转换为字符串，并去除末尾的空字符
+			username = string(utmp.User[:])
+			for i, c := range username {
+				if c == 0 {
+					username = username[:i]
+					break
+				}
+			}
+
+			// 转换时间戳
+			loginTime := time.Unix(int64(utmp.Tv.Sec), int64(utmp.Tv.Usec)*1000)
+			lastsignon = loginTime.Format("2006-01-02 15:04:05")
+		}
+	}
+
+	return username, lastsignon
+}
+
+func getOS() string {
+	var os string = ""
+
+	output, err := runCommand("lsb_release", "-a")
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("命令执行失败: %s\n", err))
+		return os
+	}
+
+	result := make(map[string]string)
+	scanner := bufio.NewScanner(strings.NewReader(output))
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		// 跳过空行和没有冒号的行
+		if line == "" || !strings.Contains(line, ":") {
+			continue
+		}
+
+		// 按冒号分割键值对
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		result[key] = value
+	}
+
+	if description, exists := result["Description"]; exists {
+		os = description
+	}
+
+	return os
+}
+
+func getSystemInfo() SystemInfo {
+	systemInfo := SystemInfo{}
+
+	exist := common.PathExists("/sys/firmware/efi")
+	if exist {
+		systemInfo.BootMode = "UEFI"
+	} else {
+		systemInfo.BootMode = "Legacy"
+	}
+
+	const dmiProductNameFile = "/sys/class/dmi/id/product_name"
+
+	// 读取文件内容
+	data, err := os.ReadFile(dmiProductNameFile)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("读取DMI文件失败: %v", err))
+	}
+
+	// 去除内容中的换行符和首尾空白字符
+	model := strings.TrimSpace(string(data))
+	systemInfo.Model = model
+
+	return systemInfo
+}
+
+func getMemoryInfo() MemoryInfo {
+	var mi MemoryInfo
+	memInfo, err := mem.VirtualMemory()
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("   获取内存信息失败: %v\n", err))
+	} else {
+		// 将字节转换为MB，1 MB = 1024 * 1024 字节
+		totalMB := float64(memInfo.Total) / (1024 * 1024)
+		mi = MemoryInfo{
+			TotalPhysical: int64(totalMB),
+		}
+	}
+
+	return mi
+}
+
+func getCPUInfo() CPUInfo {
+	var cpuInfo CPUInfo
+	cpuInfos, err := cpu.Info()
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("   获取CPU信息失败: %v\n", err))
+	} else {
+		// 通常所有逻辑CPU的核心信息是一致的，取第一个即可
+		if len(cpuInfos) > 0 {
+			cpuModel := cpuInfos[0].ModelName
+			cpuSpeed := cpuInfos[0].Mhz
+			cpuInfo = CPUInfo{
+				Name:          cpuModel,
+				MaxClockSpeed: float32(cpuSpeed) / 1000, // MHz to GHz
+			}
+		}
+	}
+
+	return cpuInfo
 }
 
 func getLastKBCode() string {

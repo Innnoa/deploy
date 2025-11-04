@@ -32,23 +32,6 @@ type Win32_PhysicalMemory struct {
 	Capacity uint64 // 内存容量 (字节)
 }
 
-// CPU 信息结构体
-type CPUInfo struct {
-	Name          string
-	MaxClockSpeed float32
-}
-
-// 内存信息结构体
-type MemoryInfo struct {
-	TotalPhysical int64 // GB
-}
-
-// boot信息结构体
-type SystemInfo struct {
-	BootMode string
-	Model    string // PC型号（如 "HP ProDesk 600 G3"）
-}
-
 type Win32_Processor struct {
 	MaxClockSpeed uint32
 	Name          string
@@ -96,6 +79,28 @@ func getUploadInfo() common.DetailComputerInfo {
 	common.DetailPCInfo.LastSignon = lastsignon
 
 	return common.DetailPCInfo
+}
+
+func setDiskInfo(disks []DiskInfo) {
+	common.DetailPCInfo.NumOfDrive = fmt.Sprintf("%d", len(disks))
+	if len(disks) > 0 {
+		common.DetailPCInfo.SizeOfDrive1 = disks[0].Size
+
+		if len(disks) > 1 {
+			common.DetailPCInfo.SizeOfDrive2 = disks[1].Size
+		}
+
+		for _, d := range disks {
+			if strings.EqualFold(d.DeviceID, "C") {
+				common.DetailPCInfo.FreeSpaceC = d.FreeSpace
+			} else if strings.EqualFold(d.DeviceID, "D") {
+				common.DetailPCInfo.FreeSpaceD = d.FreeSpace
+			}
+		}
+
+		common.DetailPCInfo.LastDrive = disks[len(disks)-1].DeviceID
+		common.DetailPCInfo.SystemDrive = getOpSystemInfo()
+	}
 }
 
 func getSystemInfo() SystemInfo {
