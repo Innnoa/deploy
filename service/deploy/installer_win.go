@@ -7,13 +7,181 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
+	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
+	"strings"
 	"time"
 
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )
+
+func (p *Deploy) DoInstall() {
+	getUploadInfo()
+	api.UploadPCInfo(common.DetailPCInfo)
+
+	maintaskid, err := uploadInstallInfo()
+	mainTask = maintaskid
+	if err != nil {
+		setAllStatusFail("upload task infomation failed")
+		return
+	}
+
+	target := "C:/Temp/tool"
+	_, exitErr := os.Stat(target)
+
+	if os.IsNotExist(exitErr) {
+		if err := os.MkdirAll(target, 0755); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("create local temp folder failed: %v", err))
+			setAllStatusFail("create local temp folder failed")
+			return
+		}
+	}
+
+	appBats := api.GetCodesByGroup("APP_COMMON_FILES")
+	if len(appBats) == 0 {
+		setAllStatusFail("get APP_COMMON_FILES bat files infomation failed")
+		return
+	}
+
+	printerBats := api.GetCodesByGroup("PRINTER_COMMON_FILES")
+	if len(printerBats) == 0 {
+		setAllStatusFail("get PRINTER_COMMON_FILES bat files infomation failed")
+		return
+	}
+
+	beforeBats := append(appBats, printerBats...)
+
+	switch common.CurrentOA.StorageType {
+	case "SMB":
+		smbInstall(target, beforeBats)
+	case "NGINX":
+		nginxInstall(target, beforeBats)
+	default:
+		smbInstall(target, beforeBats)
+	}
+}
+
+func (p *Deploy) InstallAfterReboot() {
+	var tempMount string
+	if common.CurrentOA.StorageType != "NGINX" {
+		_, m, ret := mount()
+		if !ret {
+			defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+			return
+		}
+		tempMount = m
+	}
+
+	target := "C:/Temp/tool"
+	installPackages(target, tempMount)
+}
+
+func installPackages(target, mount string) {
+	for i := range installedPackages {
+		if cancelling {
+			break
+		}
+		if installedPackages[i].Status == common.Completed.String() ||
+			installedPackages[i].Status == common.Failed.String() {
+			continue
+		}
+
+		var app common.AppStatus
+		app.ID = installedPackages[i].ID
+		app.MainTask = mainTask
+		api.StartInstall(app)
+		installedPackages[i].Status = common.Running.String()
+
+		if strings.TrimSpace(installedPackages[i].AppName) == "Restart Machine" {
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
+			rebootForInstall()
+
+			return
+		} else if strings.TrimSpace(installedPackages[i].AppName) == "Time Sync" {
+			syncTime()
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
+
+			continue
+		} else if strings.TrimSpace(installedPackages[i].AppName) == "RU Service" {
+			err0 := installRU(target, mount)
+			if err0 != nil {
+				common.AppLogger.Error(fmt.Sprintln("install ruservice failed:", err0))
+				setPakcageStatusFailed(&installedPackages[i], err0, app)
+			} else {
+				installedPackages[i].Status = common.Completed.String()
+				api.InstallationSuccess(app)
+			}
+
+			continue
+		}
+
+		var err error
+		err = downloadInstallFiles(target, mount, installedPackages[i])
+		if err != nil {
+			common.AppLogger.Error(fmt.Sprintln("download package files failed:", err))
+			setPakcageStatusFailed(&installedPackages[i], err, app)
+			continue
+		}
+		beforebat := ""
+		shortSeed := common.CurrentComputerInfo.Seed[0:4]
+		switch installedPackages[i].AppType {
+		case "Printer":
+			beforebat = "PrinterEntrance.bat"
+			if installedPackages[i].IP == "" {
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, shortSeed)
+			} else {
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP, shortSeed)
+			}
+		default:
+			beforebat = "AppEntrance.bat"
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].WinFile, shortSeed)
+		}
+
+		if err != nil {
+			common.AppLogger.Error(fmt.Sprintln("failed to install the application:", err))
+			setPakcageStatusFailed(&installedPackages[i], err, app)
+			continue
+		}
+
+		installedPackages[i].Status = common.Completed.String()
+
+		api.InstallationSuccess(app)
+	}
+
+	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+}
+
+func installRU(dir, mount string) error {
+	ru := api.GetAppVersionInfo("RU")
+	url := ru.InstallPath
+
+	src := filepath.Join(dir, filepath.Base(url))
+	var err error
+	switch common.CurrentOA.StorageType {
+	case "SMB":
+		err = smbCopyRUService(mount, url, src)
+	case "NGINX":
+		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, url)
+		downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
+		err = downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), src)
+	default:
+		err = smbCopyRUService(mount, url, src)
+	}
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("download ruservice failed: %v", err))
+		return err
+	}
+
+	err = installRUService(src)
+	return err
+}
 
 func installRUService(src string) error {
 	target := "C:\\Program Files\\RU\\ruservice.exe"
