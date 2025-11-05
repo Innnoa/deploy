@@ -327,3 +327,54 @@ func safeDeleteService(name string) error {
 	common.AppLogger.Info("service has been deleted")
 	return nil
 }
+
+func nginxInstall(target string, bats []common.GroupCode) {
+	for _, bat := range bats {
+		//Copy bat file that will run first before running app bat
+		localPath := filepath.Join(target, filepath.Base(bat.Name))
+		// nginx 下载路径拼接
+		downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, bat.Name)
+		// 下载 downloadUrl 的文件
+		downError := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), localPath)
+		if downError != nil {
+			common.AppLogger.Error(fmt.Sprintf("copy file %s failed: %v", downloadUrl, downError))
+			continue
+		}
+
+		common.AppLogger.Info(fmt.Sprintf("copy file %s successful", bat.Name))
+	}
+
+	//2. 执行安装
+	installPackages(target, "")
+}
+
+func smbInstall(target string, bats []common.GroupCode) {
+	tempMount, _, ret := mount()
+	if !ret {
+		defer exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+		return
+	}
+
+	for _, bat := range bats {
+		//Copy bat file that will run first before running app bat
+		localPath := filepath.Join(target, filepath.Base(bat.Name))
+		source := filepath.Join(tempMount, bat.Name)
+		cmdCopy := fmt.Sprintf("copy %s %s", source, localPath)
+
+		_, err := os.Stat(source)
+
+		if os.IsNotExist(err) {
+			common.AppLogger.Error(fmt.Sprintf("%s source is not exist.", source))
+			continue
+		}
+		if output, err := exec.Command("cmd", "/C", cmdCopy).CombinedOutput(); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("%s copy common bat files failed: %v\n error: %s", cmdCopy, err, common.DecodeByLocale(output)))
+			setAllStatusFail("copy common bat files failed")
+			return
+		}
+
+		common.AppLogger.Info(fmt.Sprintf("common bat file %s copy successful", bat.Name))
+	}
+
+	installPackages(target, tempMount)
+}

@@ -104,12 +104,12 @@ func runCommand(command string, args ...string) (string, error) {
 
 	// 构建返回的error
 	var resultErr error
-	if err != nil || errMsg != "" {
+	if err != nil {
 		// 合并命令执行错误和stderr内容
-		errorDetails := fmt.Sprintf("命令执行错误: %v, 标准错误: %s", err, errMsg)
-		resultErr = fmt.Errorf(errorDetails)
+		resultErr = fmt.Errorf("error is: %v, errMsg is: %s", err, errMsg)
 	}
 
+	common.AppLogger.Info(fmt.Sprintf("command output: %s", output))
 	return output, resultErr
 }
 
@@ -152,7 +152,7 @@ func getDiskInfo() []DiskInfo {
 	}
 
 	for _, device := range deviceList.BlockDevices {
-		common.AppLogger.Info(fmt.Sprintf("设备: %s, 类型: %s, 大小: %s， 挂载: %s\n", device.Name, device.Type, device.Size, *device.Mountpoint))
+		common.AppLogger.Info(fmt.Sprintf("设备: %s, 类型: %s, 大小: %s\n", device.Name, device.Type, device.Size))
 		if strings.EqualFold(device.Type, "disk") {
 			var disk DiskInfo
 			disk.DeviceID = device.Name

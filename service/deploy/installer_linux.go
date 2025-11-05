@@ -11,6 +11,7 @@ import (
 )
 
 func installRU() error {
+	return nil
 }
 
 func installRUService(src string) error {
@@ -92,7 +93,7 @@ func installPackages() {
 			continue
 		}
 
-		_, err := runCommand("apt", "install", installedPackages[i].InstallPackageName)
+		_, err := runCommand("apt", "install", installedPackages[i].InstallPackageName, "-y")
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("failed to install the application:", err))
 			setPakcageStatusFailed(&installedPackages[i], err, app)
