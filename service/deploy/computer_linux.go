@@ -33,7 +33,7 @@ type OEMInfo struct {
 type BasicInfo struct {
 	ISOId     string `json:"iso_id"`
 	OEMCode   string `json:"oem_code"`
-	TimeStamp string `json:"timestamp"`
+	TimeStamp int    `json:"timestamp"`
 	Type      int    `json:"type"`
 }
 
@@ -214,7 +214,11 @@ func setDiskInfo(disks []DiskInfo) {
 }
 
 func getComputerName() string {
-	hostname := os.Getenv("HOSTNAME")
+	hostname, err := os.Hostname()
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("获取主机名失败: %v", err))
+	}
+	common.AppLogger.Info(fmt.Sprintf("os.Hostname: %s\n", hostname))
 
 	parts := strings.Split(hostname, ".")
 
@@ -397,7 +401,7 @@ func getCPUInfo() CPUInfo {
 func getLastKBCode() string {
 	data, err := os.ReadFile("/etc/oem-info")
 	if err != nil {
-		common.AppLogger.Error(fmt.Sprintf("读取文件出错:", err))
+		common.AppLogger.Error(fmt.Sprintf("读取文件出错: %v", err))
 		return ""
 	}
 
@@ -405,7 +409,7 @@ func getLastKBCode() string {
 
 	err = json.Unmarshal(data, &info)
 	if err != nil {
-		common.AppLogger.Error(fmt.Sprintf("解析JSON出错:", err))
+		common.AppLogger.Error(fmt.Sprintf("解析JSON出错: %v", err))
 		return ""
 	}
 
