@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+var tempFilePath = "/tmp/tool"
+
 func installRU() error {
 	return nil
 }
@@ -34,6 +36,14 @@ func stopServiceIfRunning() error {
 	return nil
 }
 
+func (p *Deploy) DeleteTempFiles() error {
+	err := deleteTempFiles(tempFilePath)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
+	}
+	return err
+}
+
 func (p *Deploy) DoInstall() {
 	getUploadInfo()
 	api.UploadPCInfo(common.DetailPCInfo)
@@ -50,6 +60,12 @@ func (p *Deploy) DoInstall() {
 
 func (p *Deploy) InstallAfterReboot() {
 	installPackages()
+}
+
+func rebootForInstall() {
+	saveTemporaryInfo()
+	createScheduledTask("Deploy", []string{"-restart"})
+	reboot()
 }
 
 func installPackages() {

@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
@@ -308,15 +309,6 @@ func deleteTempFiles(dir string) error {
 	return nil
 }
 
-func (p *Deploy) DeleteTempFiles() error {
-	err := deleteTempFiles("C:\\Temp\\tool")
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
-	}
-	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
-	return err
-}
-
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
 	common.AppLogger.Info("GetInstallStatus")
 
@@ -342,7 +334,7 @@ func saveTemporaryInfo() {
 	}
 
 	// 写入文件（0644权限：用户读写，组和其他读）
-	err = os.WriteFile("temp.json", jsonData, 0644)
+	err = os.WriteFile(path.Join(tempFilePath, "temp.json"), jsonData, 0644)
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("保存安装包列表失败：%v", err))
 	}
@@ -368,12 +360,6 @@ func (p *Deploy) LoadTemporaryInfo(path string) {
 	common.CurrentOA = tempInfo.Server
 	common.CurrentComputerInfo = tempInfo.Computer
 	mainTask = tempInfo.MaintaskId
-}
-
-func rebootForInstall() {
-	saveTemporaryInfo()
-	createScheduledTask("Deploy", []string{"-restart"})
-	reboot()
 }
 
 func (p *Deploy) CancelInatallation() {

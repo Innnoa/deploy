@@ -19,6 +19,17 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 )
 
+var tempFilePath = "C:\\Temp\\tool"
+
+func (p *Deploy) DeleteTempFiles() error {
+	err := deleteTempFiles(tempFilePath)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("delete文件错误:", err))
+	}
+	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
+	return err
+}
+
 func (p *Deploy) DoInstall() {
 	getUploadInfo()
 	api.UploadPCInfo(common.DetailPCInfo)
@@ -30,7 +41,7 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
-	target := "C:/Temp/tool"
+	target := tempFilePath
 	_, exitErr := os.Stat(target)
 
 	if os.IsNotExist(exitErr) {
@@ -76,8 +87,14 @@ func (p *Deploy) InstallAfterReboot() {
 		tempMount = m
 	}
 
-	target := "C:/Temp/tool"
+	target := tempFilePath
 	installPackages(target, tempMount)
+}
+
+func rebootForInstall() {
+	saveTemporaryInfo()
+	createScheduledTask("Deploy", []string{"-restart"})
+	reboot()
 }
 
 func installPackages(target, mount string) {
