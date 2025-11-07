@@ -5,35 +5,126 @@ package deploy
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
+	"recovery-unit-deploy/service/smb"
+	"strconv"
 	"strings"
 )
 
 var tempFilePath = "/tmp/tool"
 
 func installRU() error {
+	ru := api.GetAppVersionInfo("RU")
+	src := ru.InstallPath
+
+	target := filepath.Join(tempFilePath, filepath.Base(src))
+	var err error
+	switch common.CurrentOA.StorageType {
+	case "SMB":
+		downloadRUSmb(src, target)
+	case "NGINX":
+		downloadRUNginx(src, target)
+	default:
+		downloadRUSmb(src, target)
+	}
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("download ruservice failed: %v", err))
+		return err
+	}
+
+	err = installRUService(target)
+	return err
+}
+
+func downloadRUSmb(src, target string) error {
+	server := common.CurrentOA.ServerName
+	username := common.CurrentOA.UserName //get from server
+	encryptedPassword := common.CurrentOA.Password
+	password := common.Decode(encryptedPassword) //get from server
+	port := 0
+	if common.CurrentOA.Port != "" {
+		// 字符串转int
+		_port, err := strconv.Atoi(common.CurrentOA.Port)
+		if err != nil {
+			common.AppLogger.Error(fmt.Sprintf("端口号转换失败: %v", err))
+		}
+		port = _port
+	}
+	client := smb.NewClient(server, port, common.CurrentOA.RootPath, username, password)
+	err := client.Connect()
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprint("连接smb服务器失败: %v", err))
+		return err
+	}
+	defer func() {
+		if err := client.Disconnect(); err != nil {
+			common.AppLogger.Error(fmt.Sprintf("断开 SMB 连接失败: %v", err))
+		}
+	}()
+
+	exists, _, err := client.FileExists(src)
+	if !exists {
+		errmsg := fmt.Sprintf("%s source is not exist: %v", src, err)
+		common.AppLogger.Error(errmsg)
+		return fmt.Errorf(errmsg)
+	}
+	err = client.DownloadFile(src, target)
+	if err != nil {
+		errmsg := fmt.Sprintf("下载 %s 失败: %v", src, err)
+		return fmt.Errorf(errmsg)
+	}
+}
+
+func downloadRUNginx(src, target string) error {
+	downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, src)
+	downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
+	err := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), target)
+
+	return err
+}
+
+func installRUService(target string) error {
+	if err := checkDpkg(); err != nil {
+		return err
+	}
+	if err := checkFile(target); err != nil {
+		return err
+	}
+
+	if output, err := installDeb(target); err != nil {
+		return fmt.Errorf("install ruservice failed: %v, output: %s", err, &output)
+	}
+
 	return nil
 }
 
-func installRUService(src string) error {
+func checkDpkg() error {
+	// 检查 dpkg 命令是否可用
+	_, err := exec.LookPath("dpkg")
+	if err != nil {
+		return fmt.Errorf("'dpkg' command not found, ensure it is installed and in your PATH")
+	}
 	return nil
 }
 
-func createRUService(serviceName, binPath string) error {
+func checkFile(debPath string) error {
+	// 检查 .deb 文件是否存在
+	if _, err := os.Stat(debPath); os.IsNotExist(err) {
+		return fmt.Errorf("deb file not found: %s", debPath)
+	}
 	return nil
 }
 
-func createService(name, binPath string) error {
-	return nil
-}
+func installDeb(debPath string) (string, error) {
+	// 使用 dpkg 安装本地的 .deb 文件
+	output, err := runCommand("sudo", "dpkg", "-i", debPath)
 
-func safeDeleteService(name string) error {
-	return nil
-}
-
-func stopServiceIfRunning() error {
-	return nil
+	return output, err
 }
 
 func (p *Deploy) DeleteTempFiles() error {

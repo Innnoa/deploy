@@ -333,6 +333,7 @@ func saveTemporaryInfo() {
 		common.AppLogger.Error(fmt.Sprintf("序列化安装包列表失败：%v", err))
 	}
 
+	os.MkdirAll(tempFilePath, 0755)
 	// 写入文件（0644权限：用户读写，组和其他读）
 	err = os.WriteFile(path.Join(tempFilePath, "temp.json"), jsonData, 0644)
 	if err != nil {
