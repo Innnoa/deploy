@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"recovery-unit-deploy/service/common"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -759,7 +760,12 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 	}
 
 	for _, sl := range result.Data {
-		filename := fmt.Sprintf("C:\\%s.seedlabel.txt", sl.SeedLabel)
+		var filename string
+		if runtime.GOOS == "windows" {
+			filename = fmt.Sprintf("C:\\%s.seedlabel.txt", sl.SeedLabel)
+		} else {
+			filename = fmt.Sprintf("/etc/seedinfo/%s.seedlabel.txt", sl.SeedLabel)
+		}
 		_, err := os.Stat(filename)
 		if errors.Is(err, os.ErrNotExist) {
 			continue

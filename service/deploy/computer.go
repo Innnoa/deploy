@@ -2,10 +2,32 @@ package deploy
 
 import (
 	"net"
-	"os"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 )
+
+type DiskInfo struct {
+	DeviceID  string // 盘符（如 "C"）
+	FreeSpace string // 剩余空间（GB）
+	Size      string // 总容量（GB）
+}
+
+// CPU 信息结构体
+type CPUInfo struct {
+	Name          string
+	MaxClockSpeed float32
+}
+
+// 内存信息结构体
+type MemoryInfo struct {
+	TotalPhysical int64 // GB
+}
+
+// boot信息结构体
+type SystemInfo struct {
+	BootMode string
+	Model    string // PC型号（如 "HP ProDesk 600 G3"）
+}
 
 func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
 	kbcode := getLastKBCode()
@@ -16,11 +38,6 @@ func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
 
 func (c *Deploy) CheckSeedLabel() bool {
 	return checkSeedFile()
-}
-
-func getComputerName() string {
-	name := os.Getenv("COMPUTERNAME")
-	return name
 }
 
 func getIP() string {

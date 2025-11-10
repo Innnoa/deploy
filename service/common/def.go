@@ -48,21 +48,22 @@ type Printer struct {
 }
 
 type PackageInfo struct {
-	ID            string `json:"id"`
-	AppName       string `json:"appname"`
-	BrandId       string `json:"brandId"`
-	AppType       string `json:"apptype"`
-	Path          string `json:"installpath"`
-	WinFile       string `json:"winfile"`
-	UOSFile       string `json:"uosdeb"`
-	KylinFile     string `json:"kylindeb"`
-	Status        string `json:"status"`
-	Error         string `json:"error"`
-	PolNo         string `json:"pol"`
-	IP            string `json:"ip"`
-	Reboot        string `json:"reboot"`
-	PrinterName   string `json:"printerName"`
-	PrinterDriver string `json:"printerDriver"`
+	ID                 string `json:"id"`
+	AppName            string `json:"appname"`
+	BrandId            string `json:"brandId"`
+	AppType            string `json:"apptype"`
+	Path               string `json:"installpath"`
+	WinFile            string `json:"winfile"`
+	UOSFile            string `json:"uosdeb"`
+	KylinFile          string `json:"kylindeb"`
+	Status             string `json:"status"`
+	Error              string `json:"error"`
+	PolNo              string `json:"pol"`
+	IP                 string `json:"ip"`
+	Reboot             string `json:"reboot"`
+	PrinterName        string `json:"printerName"`
+	PrinterDriver      string `json:"printerDriver"`
+	InstallPackageName string `json:"installPackageName"`
 }
 
 type Status int
