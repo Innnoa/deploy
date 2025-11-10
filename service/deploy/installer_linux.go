@@ -81,7 +81,7 @@ func downloadRUSmb(src, target string) error {
 }
 
 func downloadRUNginx(src, target string) error {
-	downloadUrl := fmt.Sprintf("http://%s:%s/public/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, src)
+	downloadUrl := fmt.Sprintf("http://%s:%s%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, common.CurrentOA.BaseUrl, src)
 	downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
 	err := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), target)
 
