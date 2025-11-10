@@ -6,10 +6,9 @@ package deploy
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
-
-	"github.com/emersion/go-autostart"
 )
 
 func reboot() {
@@ -20,25 +19,46 @@ func reboot() {
 	}
 }
 
-func createScheduledTask(taskName string, args []string) {
+func createScheduledTask(taskName string, args []string) error {
 	exePath, _ := os.Executable()
 	cmd := fmt.Sprintf(`"%s" %s`, exePath, strings.Join(args, " "))
-	app := &autostart.App{
-		Name:        "Deploy",
-		DisplayName: "Deploy",
-		Exec:        []string{cmd}, // 程序B的绝对路径
+	autostartDir := filepath.Join(os.Getenv("HOME"), ".config", "autostart")
+
+	// 确保目录存在
+	if err := os.MkdirAll(autostartDir, 0755); err != nil {
+		return fmt.Errorf("创建自启动目录失败: %v", err)
 	}
-	// 启用自启动
-	app.Enable()
+
+	desktopFile := filepath.Join(autostartDir, taskName+".desktop")
+
+	content := fmt.Sprintf(`[Desktop Entry]
+Type=Application
+Name=%s
+Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY %s
+Icon=%s
+Comment=Auto-start application
+Terminal=false
+Categories=Utility;
+`, taskName, cmd, "")
+
+	return os.WriteFile(desktopFile, []byte(content), 0644)
 }
 
-func DeleteScheduledTask(taskName string) {
-	exePath, _ := os.Executable()
-	app := &autostart.App{
-		Name:        "Deploy",
-		DisplayName: "Deploy",
-		Exec:        []string{exePath},
+func DeleteScheduledTask(taskName string) error {
+	// 假设条目创建在自动启动目录
+	autostartDir := filepath.Join(os.Getenv("HOME"), ".config", "autostart")
+	desktopFile := filepath.Join(autostartDir, taskName+".desktop")
+
+	// 2. 检查文件是否存在
+	if _, err := os.Stat(desktopFile); os.IsNotExist(err) {
+		return fmt.Errorf("启动条目文件不存在: %s", desktopFile)
 	}
-	// 禁用自启动
-	app.Disable()
+
+	// 3. 执行删除操作
+	if err := os.Remove(desktopFile); err != nil {
+		return fmt.Errorf("删除文件失败: %v", err)
+	}
+
+	fmt.Printf("成功删除自动启动条目: %s\n", desktopFile)
+	return nil
 }
