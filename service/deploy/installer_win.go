@@ -175,7 +175,7 @@ func installPackages(target, mount string) {
 }
 
 func installRU(dir, mount string) error {
-	ru := api.GetAppVersionInfo("RU")
+	ru := api.GetAppVersionInfo("RU", common.GetOS())
 	url := ru.InstallPath
 
 	src := filepath.Join(dir, filepath.Base(url))

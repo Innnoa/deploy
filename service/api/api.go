@@ -135,6 +135,7 @@ type GetSeedTasksResponse struct {
 type GetAppVersionInfoRequest struct {
 	PublicRequest
 	Type string `json:"type"`
+	OS   string `json:"os"`
 }
 
 type GetAppVersionInfoResponse struct {
@@ -821,12 +822,13 @@ func GetSeedTasks(seed string) []common.PackageInfo {
 	return tasks
 }
 
-func GetAppVersionInfo(t string) common.AppVersionInfo {
+func GetAppVersionInfo(t, os string) common.AppVersionInfo {
 	common.AppLogger.Info("get newest app verion info")
 
 	var appInfo common.AppVersionInfo
 	var request GetAppVersionInfoRequest
 	request.Type = t
+	request.OS = os
 
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY_RU

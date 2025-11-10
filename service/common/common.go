@@ -1,6 +1,11 @@
 package common
 
-import "os"
+import (
+	"log"
+	"os"
+	"runtime"
+	"strings"
+)
 
 var CurrentComputerInfo ComputerInfo
 
@@ -28,4 +33,29 @@ func PathExists(path string) bool {
 		return false // 不存在
 	}
 	return true // 其他错误（如权限问题）
+}
+
+func isUOS() bool {
+	// 尝试读取 /etc/os-release 文件
+	file, err := os.ReadFile("/etc/os-version")
+	if err != nil {
+		log.Println("Error reading /etc/os-version:", err)
+		return false
+	}
+
+	// 检查文件内容
+	content := string(file)
+	return strings.Contains(content, "SystemName=UnionTech OS Desktop") || strings.Contains(content, "SystemName=UOS Desktop")
+}
+
+func GetOS() string {
+	if runtime.GOOS == "windows" {
+		return "WIN"
+	} else if runtime.GOOS == "linux" {
+		if isUOS() {
+			return "UOS"
+		}
+		return "linux"
+	}
+	return "WIN"
 }

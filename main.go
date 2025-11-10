@@ -29,7 +29,7 @@ var BaseUrl = "https://deploy.ru.com/api-system"
 var HasNewVersion = false
 
 func hasNewVersion() bool {
-	appInfo := api.GetAppVersionInfo("DEPLOY")
+	appInfo := api.GetAppVersionInfo("DEPLOY", common.GetOS())
 
 	v1 := strings.Split(appInfo.Version, ".")
 	v2 := strings.Split(Version, ".")

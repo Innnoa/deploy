@@ -18,7 +18,7 @@ import (
 var tempFilePath = "/tmp/tool"
 
 func installRU() error {
-	ru := api.GetAppVersionInfo("RU")
+	ru := api.GetAppVersionInfo("RU", common.GetOS())
 	src := ru.InstallPath
 
 	target := filepath.Join(tempFilePath, filepath.Base(src))
@@ -73,11 +73,14 @@ func downloadRUSmb(src, target string) error {
 		common.AppLogger.Error(errmsg)
 		return fmt.Errorf(errmsg)
 	}
+
 	err = client.DownloadFile(src, target)
 	if err != nil {
 		errmsg := fmt.Sprintf("下载 %s 失败: %v", src, err)
 		return fmt.Errorf(errmsg)
 	}
+
+	return nil
 }
 
 func downloadRUNginx(src, target string) error {
