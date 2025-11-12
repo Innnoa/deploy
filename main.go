@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 	"recovery-unit-deploy/service/deploy"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -74,7 +76,41 @@ func acquireAppLock() (net.Listener, error) {
 	return listener, nil
 }
 
+func isRunningAsRoot() bool {
+	return os.Geteuid() == 0
+}
+
 func main() {
+	if runtime.GOOS == "linux" {
+		if !isRunningAsRoot() {
+			// 获取当前可执行文件的绝对路径
+			exePath, err := filepath.Abs(os.Args[0])
+			params := strings.Join(os.Args[1:], " ")
+			if err != nil {
+				fmt.Printf("Error getting executable path: %v\n", err)
+				return
+			}
+
+			// 构建pkexec命令，特别针对GUI应用传递环境变量
+			cmd := exec.Command("pkexec",
+				"env",
+				"DISPLAY="+os.Getenv("DISPLAY"),
+				"XAUTHORITY="+os.Getenv("XAUTHORITY"),
+				"SUDO_USER="+os.Getenv("USER"),
+				exePath,
+				params)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
+
+			if err := cmd.Run(); err != nil {
+				fmt.Printf("Failed to run with pkexec: %v\n", err)
+			}
+			// 父进程（非特权进程）退出
+			os.Exit(0)
+		}
+	}
+
 	common.InitLogger("Deploy")
 
 	defer common.CloseLogger()
@@ -82,8 +118,6 @@ func main() {
 	common.AppLogger.Info(fmt.Sprintf("Current version is: %s", Version))
 
 	common.AppLogger.Info(fmt.Sprintf("os.Args[0]: %s", os.Args[0]))
-
-	dir := filepath.Dir(os.Args[0])
 
 	args := os.Args[1:] // 忽略第一个参数（程序路径）
 	isDebug := false
@@ -129,11 +163,7 @@ func main() {
 	}
 
 	if isRestart {
-		path := filepath.Join(dir, "temp.json")
-		deploy.LoadTemporaryInfo(path)
-		if err := os.Remove(path); err != nil {
-			common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", path, err))
-		}
+		deploy.LoadTemporaryInfo()
 	}
 	// Create application with options
 	err = wails.Run(&options.App{

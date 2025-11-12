@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"recovery-unit-deploy/service/common"
 	"strings"
 	"syscall"
 )
@@ -19,34 +20,31 @@ func reboot() {
 	}
 }
 
-func createScheduledTask(taskName string, args []string) error {
+func createScheduledTask(taskName string, args []string) (string, error) {
 	exePath, _ := os.Executable()
 	cmd := fmt.Sprintf(`"%s" %s`, exePath, strings.Join(args, " "))
-	autostartDir := filepath.Join(os.Getenv("HOME"), ".config", "autostart")
-
-	// 确保目录存在
-	if err := os.MkdirAll(autostartDir, 0755); err != nil {
-		return fmt.Errorf("创建自启动目录失败: %v", err)
-	}
-
+	autostartDir := filepath.Join("/etc", "xdg", "autostart")
 	desktopFile := filepath.Join(autostartDir, taskName+".desktop")
+
+	common.AppLogger.Info(fmt.Sprintf("desktopfile : %s", desktopFile))
 
 	content := fmt.Sprintf(`[Desktop Entry]
 Type=Application
 Name=%s
-Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY %s
+Exec=%s
 Icon=%s
 Comment=Auto-start application
 Terminal=false
 Categories=Utility;
 `, taskName, cmd, "")
 
-	return os.WriteFile(desktopFile, []byte(content), 0644)
+	return desktopFile, common.WriteFileWithSync(desktopFile, []byte(content))
+	// return desktopFile, os.WriteFile(desktopFile, []byte(content), 0644)
 }
 
 func DeleteScheduledTask(taskName string) error {
 	// 假设条目创建在自动启动目录
-	autostartDir := filepath.Join(os.Getenv("HOME"), ".config", "autostart")
+	autostartDir := filepath.Join("/etc", "xdg", "autostart")
 	desktopFile := filepath.Join(autostartDir, taskName+".desktop")
 
 	// 2. 检查文件是否存在

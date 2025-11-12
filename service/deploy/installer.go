@@ -333,16 +333,23 @@ func saveTemporaryInfo() {
 		common.AppLogger.Error(fmt.Sprintf("序列化安装包列表失败：%v", err))
 	}
 
+	common.AppLogger.Error(fmt.Sprintf("temp json：%s", string(jsonData)))
+
 	os.MkdirAll(tempFilePath, 0755)
 	// 写入文件（0644权限：用户读写，组和其他读）
-	err = os.WriteFile(path.Join(tempFilePath, "temp.json"), jsonData, 0644)
+	err = common.WriteFileWithSync(path.Join(tempFilePath, "temp.json"), jsonData)
+	// err = os.WriteFile(path.Join(tempFilePath, "temp.json"), jsonData, 0644)
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("保存安装包列表失败：%v", err))
+	} else {
+		common.AppLogger.Info("saveTemporaryInfo success")
 	}
 }
 
-func (p *Deploy) LoadTemporaryInfo(path string) {
+func (p *Deploy) LoadTemporaryInfo() {
 	common.AppLogger.Info("start LoadTemporaryInfo")
+
+	path := filepath.Join(tempFilePath, "temp.json")
 	file, err := os.Open(path)
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("文件 %s 打开失败: %v", path, err))
@@ -361,6 +368,10 @@ func (p *Deploy) LoadTemporaryInfo(path string) {
 	common.CurrentOA = tempInfo.Server
 	common.CurrentComputerInfo = tempInfo.Computer
 	mainTask = tempInfo.MaintaskId
+
+	if err := os.Remove(path); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("删除 %s 失败: %v", path, err))
+	}
 }
 
 func (p *Deploy) CancelInatallation() {

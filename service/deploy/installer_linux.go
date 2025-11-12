@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var tempFilePath = "/tmp/tool"
+var tempFilePath = "/var/deploy"
 
 func installRU() error {
 	ru := api.GetAppVersionInfo("RU", common.GetOS())
@@ -158,7 +158,12 @@ func (p *Deploy) InstallAfterReboot() {
 
 func rebootForInstall() {
 	saveTemporaryInfo()
-	createScheduledTask("Deploy", []string{"-restart"})
+	_, err := createScheduledTask("Deploy", []string{"-restart"})
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("create autostart failed: %v", err))
+		return
+	}
+
 	reboot()
 }
 
