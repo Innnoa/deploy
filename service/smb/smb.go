@@ -130,54 +130,6 @@ func normalizePath(path string) string {
 	return path
 }
 
-// UploadFile 上传文件到SMB服务器
-func (c *Client) UploadFile(localPath, remotePath string) error {
-	// 确保连接已建立
-	if err := c.ensureConnected(); err != nil {
-		return fmt.Errorf("connection error: %v", err)
-	}
-
-	// 打开本地文件
-	srcFile, err := os.Open(localPath)
-	if err != nil {
-		return fmt.Errorf("failed to open local file: %v", err)
-	}
-	defer srcFile.Close()
-
-	// 获取文件信息
-	fileInfo, err := srcFile.Stat()
-	if err != nil {
-		return fmt.Errorf("failed to get file info: %v", err)
-	}
-
-	// 规范化远程路径
-	normRemotePath := normalizePath(remotePath)
-
-	// 创建远程文件
-	dstFile, err := c.share.Create(normRemotePath)
-	if err != nil {
-		return fmt.Errorf("failed to create remote file: %v", err)
-	}
-	defer dstFile.Close()
-
-	// 设置文件大小
-	if err := dstFile.Truncate(fileInfo.Size()); err != nil {
-		return fmt.Errorf("failed to set file size: %v", err)
-	}
-
-	// 复制文件内容
-	bytesWritten, err := io.Copy(dstFile, srcFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy file content: %v", err)
-	}
-
-	if bytesWritten != fileInfo.Size() {
-		return fmt.Errorf("file size mismatch: expected %d bytes, wrote %d bytes", fileInfo.Size(), bytesWritten)
-	}
-
-	return nil
-}
-
 // DownloadFile 从SMB服务器下载文件
 func (c *Client) DownloadFile(remotePath, localPath string) error {
 	// 确保连接已建立
@@ -199,12 +151,6 @@ func (c *Client) DownloadFile(remotePath, localPath string) error {
 	fileInfo, err := srcFile.Stat()
 	if err != nil {
 		return fmt.Errorf("failed to get file info: %v", err)
-	}
-
-	// 确保本地目录存在
-	localDir := filepath.Dir(localPath)
-	if err := os.MkdirAll(localDir, 0755); err != nil {
-		return fmt.Errorf("failed to create local directory: %v", err)
 	}
 
 	// 创建本地文件

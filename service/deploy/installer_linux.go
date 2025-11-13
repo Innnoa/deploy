@@ -23,6 +23,12 @@ func installRU() error {
 
 	target := filepath.Join(tempFilePath, filepath.Base(src))
 	var err error
+	// 确保本地目录存在
+	localDir := filepath.Dir(target)
+	if err = os.MkdirAll(localDir, 0755); err != nil {
+		return fmt.Errorf("failed to create local directory: %v", err)
+	}
+
 	switch common.CurrentOA.StorageType {
 	case "SMB":
 		downloadRUSmb(src, target)
