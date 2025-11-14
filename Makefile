@@ -30,6 +30,10 @@ upload:
 	@test $(GITLAB_TOKEN) || (echo "错误：必须设置 GITLAB_TOKEN 环境变量"; exit 1)
 	curl --header "PRIVATE-TOKEN: $(GITLAB_TOKEN)" --upload-file $(BUILD_DIR)/$(BINARY_NAME) "$(GITLAB_HOST)/api/v4/projects/$(PROJECT_ID)/packages/generic/$(PACKAGE_NAME)/$(VERSION)/$(BINARY_NAME)"
 
+upload-linux:
+	@test $(GITLAB_TOKEN) || (echo "错误：必须设置 GITLAB_TOKEN 环境变量"; exit 1)
+	curl --header "PRIVATE-TOKEN: $(GITLAB_TOKEN)" --upload-file $(BUILD_DIR)/linux/Deploy "$(GITLAB_HOST)/api/v4/projects/$(PROJECT_ID)/packages/generic/$(PACKAGE_NAME)/$(VERSION)/Deploy_linux"
+
 # 清理构建产物
 clean:
 	rm -rf build
