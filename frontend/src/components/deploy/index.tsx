@@ -343,7 +343,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
       Modal.confirm({
         title: 'Deploy complete!',
         icon: <CheckCircleFilled style={{ color: '#04B700' }} />,
-        content: 'You need to restart your computer to complete the installation.\n Click [Restart] to restart your computer, or [Exit] to manually restart your computer later.',
+        content: 'You need to restart your computer to complete the installation.\n Click [Restart] to restart your computer, or [Close] to manually restart your computer later.',
         okText: 'Restart',
         cancelText: 'Close',
         centered: true,
