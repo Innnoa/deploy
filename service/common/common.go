@@ -36,7 +36,7 @@ func PathExists(path string) bool {
 	return true // 其他错误（如权限问题）
 }
 
-func isUOS() bool {
+func IsUOS() bool {
 	// 尝试读取 /etc/os-release 文件
 	file, err := os.ReadFile("/etc/os-version")
 	if err != nil {
@@ -54,7 +54,7 @@ func GetOS() string {
 	case "windows":
 		return "WIN"
 	case "linux":
-		if isUOS() {
+		if IsUOS() {
 			return "UOS"
 		}
 		return "linux"

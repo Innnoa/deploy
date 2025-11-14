@@ -161,7 +161,6 @@ func main() {
 	if !isRestart && hasNewVersion() {
 		deploy.HasNewVersion = true
 	}
-	deploy.OS = common.GetOS()
 
 	if isRestart {
 		deploy.LoadTemporaryInfo()
