@@ -699,6 +699,7 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 
 	m["signature"] = request.Signature
 
+	common.AppLogger.Info(fmt.Sprintf("pc info: %v", info))
 	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/uploadPcInfo", info, nil, m)
 
 	if err != nil {
