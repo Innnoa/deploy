@@ -16,9 +16,9 @@ import (
 	"recovery-unit-deploy/service/common"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
+	"github.com/djherbis/times"
 	"github.com/shirou/gopsutil/v3/cpu" // 注意：推荐使用v3版本
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -419,9 +419,26 @@ func getLastKBCode() string {
 	return common.DetailPCInfo.KBCode
 }
 
-func getCreationTime(fileInfo os.FileInfo) time.Time {
-	stat := fileInfo.Sys().(*syscall.Stat_t)
-	return time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec))
+func getCreationTime(filePath string) time.Time {
+	t, err := times.Stat(filePath)
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("Error getting file times: %v\n", err))
+		return time.Now()
+	}
+
+	if t.HasBirthTime() {
+		// 使用 BirthTime() 方法获取文件的创建时间
+		return t.BirthTime()
+	} else {
+		common.AppLogger.Error("无法获取文件的BirthTime（当前文件系统可能不支持）")
+		if t.HasChangeTime() {
+			return t.ChangeTime()
+		} else {
+			common.AppLogger.Error("无法获取文件的ChangeTime（当前文件系统可能不支持）")
+		}
+	}
+
+	return time.Now()
 }
 
 func checkSeedFile() bool {
@@ -435,7 +452,7 @@ func checkSeedFile() bool {
 	modTime := fileInfo.ModTime()
 
 	// 创建时间（按系统处理）
-	createTime := getCreationTime(fileInfo)
+	createTime := getCreationTime(filename)
 
 	strModTime := modTime.Format("2006-01-02 15:04:05")
 	strCreateTime := createTime.Format("2006-01-02 15:04:05")
