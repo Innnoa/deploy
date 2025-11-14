@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect} from 'react';
 import { Button, Typography ,Input ,Modal} from 'antd';
 import { createStyles } from 'antd-style';
 import computerLogo from '../../assets/images/computer-logo.png';
 import {GetOAServer,GetSeedLabel,
-        GetPrinterModels, GetNetworkPinterList, CheckSeedLabel
+        GetPrinterModels, GetNetworkPinterList, CheckSeedLabel, GetOS
 } from "../../../wailsjs/go/deploy/Deploy";
 import { ExclamationCircleFilled} from '@ant-design/icons';
 import { useAppContext } from '../../context/AppContext';
@@ -94,6 +94,14 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     const appContext = useAppContext();
     // const { computerInfo ,server,port} = useAppContext();
     const { computerInfo } = useAppContext();
+    const [osName, setOsName] = useState<string>('');
+
+    useEffect(() => {
+      GetOS().then((info: any) => {
+        setOsName(info);
+      });
+    }, []);
+
 
     const reloadTip = () => {
       setIsLoading(false);
@@ -302,7 +310,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
       </div>
       
       <span className={styles.title} >Deploy Tool for</span>
-      <span className={styles.subtitle} >Windows</span>
+      <span className={styles.subtitle} >{osName}</span>
       
       {/* <div className={styles.inputContainer}>
         <div className={styles.inputGroup}>
