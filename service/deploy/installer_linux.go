@@ -155,6 +155,11 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
+	output, err := runCommand("sudo", "apt", "update")
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("apt update failed:", err, output))
+	}
+
 	installPackages()
 }
 
