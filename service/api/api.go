@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -725,10 +724,10 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 	}
 }
 
-func GetSeedLabel(kbcode string) common.SeedLabelInfo {
+func GetSeedLabel(kbcode string) common.SeedInfo {
 	common.AppLogger.Info("get seedlabel from kbcode")
 
-	var seedlabel common.SeedLabelInfo
+	var seedlabel common.SeedInfo
 
 	var request GetSeedLabelRequest
 	request.KBCode = kbcode
@@ -761,21 +760,29 @@ func GetSeedLabel(kbcode string) common.SeedLabelInfo {
 		return seedlabel
 	}
 
+	var find = false
+	var filename string
 	for _, sl := range result.Data {
-		var filename string
+		seedlabel.SeedLabel = sl.SeedLabel
+		seedlabel.Status = sl.Status
+		common.CurrentComputerInfo.Seed = sl.SeedLabel
+		common.CurrentSeed = sl
+
 		if runtime.GOOS == "windows" {
 			filename = fmt.Sprintf("C:\\%s.seedlabel.txt", sl.SeedLabel)
 		} else {
 			filename = fmt.Sprintf("/etc/seedinfo/%s.seedlabel.txt", sl.SeedLabel)
 		}
 		_, err := os.Stat(filename)
-		if errors.Is(err, os.ErrNotExist) {
-			continue
+		if err == nil {
+			find = true
+			break
 		}
+	}
 
-		seedlabel = sl
-		common.CurrentComputerInfo.Seed = sl.SeedLabel
-		common.CurrentSeed = sl
+	if !find {
+		seedlabel.ErrorMsg = fmt.Sprintf("Seed label file %s is not found on local disk, installation cannot continue.", filename)
+		common.AppLogger.Error(seedlabel.ErrorMsg)
 	}
 
 	return seedlabel

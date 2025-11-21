@@ -127,6 +127,12 @@ type SeedLabelInfo struct {
 	Status    string `json:"status"`
 }
 
+type SeedInfo struct {
+	SeedLabel string `json:"seedlabel"`
+	Status    string `json:"status"`
+	ErrorMsg  string `json:"errormsg"`
+}
+
 type TempInfo struct {
 	Packages   []PackageInfo `json:"packages"`
 	Server     OAServer      `json:"server"`

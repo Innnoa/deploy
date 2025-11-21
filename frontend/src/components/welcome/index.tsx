@@ -226,13 +226,17 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
     try {
       const seed = await GetSeedLabel();
       if (typeof seed.seedlabel === 'string' && seed.seedlabel.length > 0) {
-        if (seed.status === 'Active') {        
-          checkSeedlabel(seed.seedlabel);
-        }else{
-          seedLabelTip('The seedlabel on this computer has expired. Please reinstall the system before running this program.');
+        if (seed.errormsg.length > 0) {
+          seedLabelTip(seed.errormsg);
+        } else {
+          if (seed.status === 'Active') {        
+            checkSeedlabel(seed.seedlabel);
+          }else{
+            seedLabelTip('The seedlabel on this computer has expired. Please reinstall the system before running this program.');
+          }
         }
       }else{
-        seedLabelTip('Failed to obtain seedlabel; installation is not possible.');
+        seedLabelTip('Failed to obtain seedlabel, installation cannot continue.');
       }
       appContext.setComputerInfo({
         name: computerInfo.name,

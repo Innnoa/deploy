@@ -26,7 +26,7 @@ export function GetOS():Promise<string>;
 
 export function GetPrinterModels():Promise<Array<common.PrinterModel>>;
 
-export function GetSeedLabel():Promise<common.SeedLabelInfo>;
+export function GetSeedLabel():Promise<common.SeedInfo>;
 
 export function GetSelectedLocalPrinterDrivers(arg1:string):Promise<Array<common.PackageInfo>>;
 

@@ -92,20 +92,20 @@ export namespace common {
 	        this.brand = source["brand"];
 	    }
 	}
-	export class SeedLabelInfo {
-	    id: string;
+	export class SeedInfo {
 	    seedlabel: string;
 	    status: string;
+	    errormsg: string;
 	
 	    static createFrom(source: any = {}) {
-	        return new SeedLabelInfo(source);
+	        return new SeedInfo(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
 	        this.seedlabel = source["seedlabel"];
 	        this.status = source["status"];
+	        this.errormsg = source["errormsg"];
 	    }
 	}
 

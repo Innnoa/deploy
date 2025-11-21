@@ -29,7 +29,7 @@ type SystemInfo struct {
 	Model    string // PC型号（如 "HP ProDesk 600 G3"）
 }
 
-func (c *Deploy) GetSeedLabel() common.SeedLabelInfo {
+func (c *Deploy) GetSeedLabel() common.SeedInfo {
 	kbcode := getLastKBCode()
 	// kbcode = "KB5039334"
 	seed := api.GetSeedLabel(kbcode)
