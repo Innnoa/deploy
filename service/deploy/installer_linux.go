@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
-	"recovery-unit-deploy/service/smb"
-	"strconv"
 	"strings"
 )
 
@@ -44,56 +43,6 @@ func installRU() error {
 	}
 
 	err = installRUService(target)
-	return err
-}
-
-func downloadRUSmb(src, target string) error {
-	server := common.CurrentOA.ServerName
-	username := common.CurrentOA.UserName //get from server
-	encryptedPassword := common.CurrentOA.Password
-	password := common.Decode(encryptedPassword) //get from server
-	port := 0
-	if common.CurrentOA.Port != "" {
-		// 字符串转int
-		_port, err := strconv.Atoi(common.CurrentOA.Port)
-		if err != nil {
-			common.AppLogger.Error(fmt.Sprintf("端口号转换失败: %v", err))
-		}
-		port = _port
-	}
-	client := smb.NewClient(server, port, common.CurrentOA.RootPath, username, password)
-	err := client.Connect()
-	if err != nil {
-		common.AppLogger.Error(fmt.Sprint("连接smb服务器失败: %v", err))
-		return err
-	}
-	defer func() {
-		if err := client.Disconnect(); err != nil {
-			common.AppLogger.Error(fmt.Sprintf("断开 SMB 连接失败: %v", err))
-		}
-	}()
-
-	exists, _, err := client.FileExists(src)
-	if !exists {
-		errmsg := fmt.Sprintf("%s source is not exist: %v", src, err)
-		common.AppLogger.Error(errmsg)
-		return fmt.Errorf(errmsg)
-	}
-
-	err = client.DownloadFile(src, target)
-	if err != nil {
-		errmsg := fmt.Sprintf("下载 %s 失败: %v", src, err)
-		return fmt.Errorf(errmsg)
-	}
-
-	return nil
-}
-
-func downloadRUNginx(src, target string) error {
-	downloadUrl := fmt.Sprintf("http://%s:%s%s/%s", common.CurrentOA.ServerName, common.CurrentOA.Port, common.CurrentOA.BaseUrl, src)
-	downloadUrl = strings.ReplaceAll(downloadUrl, "\\", "/")
-	err := downloadFileWithBasicAuth(downloadUrl, common.CurrentOA.UserName, common.Decode(common.CurrentOA.Password), target)
-
 	return err
 }
 
@@ -152,6 +101,13 @@ func (p *Deploy) DoInstall() {
 	mainTask = maintaskid
 	if err != nil {
 		setAllStatusFail("upload task infomation failed")
+		return
+	}
+
+	err = scriptDownload()
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("script download failed:", err))
+		setAllStatusFail("script download failed")
 		return
 	}
 
@@ -219,11 +175,44 @@ func installPackages() {
 			continue
 		}
 
-		_, err := runCommand("apt", "install", installedPackages[i].InstallPackageName, "-y")
+		_, err := runCommand("apt", "install", "--reinstall", installedPackages[i].InstallPackageName, "-y")
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintln("failed to install the application:", err))
 			setPakcageStatusFailed(&installedPackages[i], err, app)
 			continue
+		}
+
+		if installedPackages[i].AppType == "Printer" {
+			// 下载 sh 文件并执行
+			if installedPackages[i].IP == "" {
+				//本地打印机
+				scriptPath := path.Join(tempFilePath, "uosPrinterLocal.sh")
+				err = os.Chmod(scriptPath, 0755)
+				if err != nil {
+					setPakcageStatusFailed(&installedPackages[i], err, app)
+					continue
+				}
+				common.AppLogger.Info("执行本地打印机脚本")
+				output, err := common.RunScriptWithArgs(scriptPath, installedPackages[i].Ppd, installedPackages[i].PrinterName)
+				if err != nil {
+					common.AppLogger.Error(fmt.Sprintf("执行本地打印机脚本失败：%s, error: %v", output, err))
+					setPakcageStatusFailed(&installedPackages[i], err, app)
+				}
+			} else {
+				//网络打印机
+				scriptPath := path.Join(tempFilePath, "uosPrinterNet.sh")
+				err = os.Chmod(scriptPath, 0755)
+				if err != nil {
+					setPakcageStatusFailed(&installedPackages[i], err, app)
+					continue
+				}
+				common.AppLogger.Info("执行网络打印机脚本")
+				output, err := common.RunScriptWithArgs(scriptPath, installedPackages[i].Ppd, installedPackages[i].PrinterName, installedPackages[i].IP, installedPackages[i].PolNo)
+				if err != nil {
+					common.AppLogger.Error(fmt.Sprintf("执行网络打印机脚本失败：%s, %v", output, err))
+					setPakcageStatusFailed(&installedPackages[i], err, app)
+				}
+			}
 		}
 
 		installedPackages[i].Status = common.Completed.String()

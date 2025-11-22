@@ -35,6 +35,7 @@ export namespace common {
 	    printerName: string;
 	    printerDriver: string;
 	    installPackageName: string;
+	    ppd: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PackageInfo(source);
@@ -58,6 +59,7 @@ export namespace common {
 	        this.printerName = source["printerName"];
 	        this.printerDriver = source["printerDriver"];
 	        this.installPackageName = source["installPackageName"];
+	        this.ppd = source["ppd"];
 	    }
 	}
 	export class Printer {

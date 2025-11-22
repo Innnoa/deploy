@@ -64,6 +64,7 @@ type PackageInfo struct {
 	PrinterName        string `json:"printerName"`
 	PrinterDriver      string `json:"printerDriver"`
 	InstallPackageName string `json:"installPackageName"`
+	Ppd                string `json:"ppd"`
 }
 
 type Status int
