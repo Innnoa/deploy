@@ -644,7 +644,7 @@ func InstallationFailed(id common.FailedAppStatus) {
 		return
 	}
 
-	common.AppLogger.Info(fmt.Sprintf("Unmarshal UpdateInstallStatusResponse : %v", result))
+	common.AppLogger.Info(fmt.Sprintf("Unmarshal InstallationFailed : %v", result))
 }
 
 func CancelInstallation(id common.AppStatus) {
