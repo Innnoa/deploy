@@ -213,9 +213,9 @@ func installPackages() {
 					setPakcageStatusFailed(&installedPackages[i], err, app)
 				}
 			}
+		} else {
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
 		}
-
-		installedPackages[i].Status = common.Completed.String()
-		api.InstallationSuccess(app)
 	}
 }
