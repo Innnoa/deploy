@@ -151,9 +151,9 @@ func installPackages(target, mount string) {
 		case "Printer":
 			beforebat = "PrinterEntrance.bat"
 			if installedPackages[i].IP == "" {
-				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, shortSeed)
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].WinFile, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, "", "", shortSeed)
 			} else {
-				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP, shortSeed)
+				_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].WinFile, installedPackages[i].PrinterName, installedPackages[i].PrinterDriver, installedPackages[i].PolNo, installedPackages[i].IP, shortSeed)
 			}
 		default:
 			beforebat = "AppEntrance.bat"
