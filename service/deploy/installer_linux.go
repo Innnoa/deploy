@@ -197,6 +197,7 @@ func installPackages() {
 				if err != nil {
 					common.AppLogger.Error(fmt.Sprintf("执行本地打印机脚本失败：%s, error: %v", output, err))
 					setPakcageStatusFailed(&installedPackages[i], err, app)
+					continue
 				}
 			} else {
 				//网络打印机
@@ -211,11 +212,11 @@ func installPackages() {
 				if err != nil {
 					common.AppLogger.Error(fmt.Sprintf("执行网络打印机脚本失败：%s, %v", output, err))
 					setPakcageStatusFailed(&installedPackages[i], err, app)
+					continue
 				}
 			}
-		} else {
-			installedPackages[i].Status = common.Completed.String()
-			api.InstallationSuccess(app)
 		}
+		installedPackages[i].Status = common.Completed.String()
+		api.InstallationSuccess(app)
 	}
 }
