@@ -31,7 +31,8 @@ func (p *Deploy) GetInstallPackages() []common.PackageInfo {
 						PolNo:         p.PolNo,
 						IP:            p.IP,
 						PrinterName:   value.PrinterName,
-						PrinterDriver: value.PrinterDriver}
+						PrinterDriver: value.PrinterDriver,
+						Ppd:           value.Ppd}
 					installedPackages = append(installedPackages, pi)
 					break
 				}

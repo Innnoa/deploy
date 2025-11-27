@@ -38,6 +38,7 @@ type PrinterWithPackage struct {
 	KylinFile     string `json:"kylindeb"`
 	PrinterName   string `json:"printerName"`
 	PrinterDriver string `json:"printerDriver"`
+	Ppd           string `json:"ppd"`
 }
 
 type Printer struct {
