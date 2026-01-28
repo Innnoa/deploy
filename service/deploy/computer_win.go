@@ -56,7 +56,10 @@ func getUploadInfo() common.DetailComputerInfo {
 	common.DetailPCInfo.PolNo = common.CurrentComputerInfo.Name
 	common.DetailPCInfo.IP = common.CurrentComputerInfo.IP
 	common.DetailPCInfo.Seedlabel = common.CurrentComputerInfo.Seed
-	common.DetailPCInfo.SP = common.CurrentComputerInfo.Seed[len(common.CurrentComputerInfo.Seed)-3:]
+	kbcode := getLastKBCode()
+	seed := api.GetSeedLabel(kbcode)
+
+	common.DetailPCInfo.SP = seed[len(seed)-3:]
 
 	disks := getDiskInfo()
 	setDiskInfo(disks)

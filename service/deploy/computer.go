@@ -4,6 +4,7 @@ import (
 	"net"
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
+	"strings"
 )
 
 type DiskInfo struct {
@@ -30,10 +31,14 @@ type SystemInfo struct {
 }
 
 func (c *Deploy) GetSeedLabel() common.SeedInfo {
-	kbcode := getLastKBCode()
-	// kbcode = "KB5039334"
-	seed := api.GetSeedLabel(kbcode)
-	return seed
+	// kbcode := getLastKBCode()
+	// // kbcode = "KB5039334"
+	// seed := api.GetSeedLabel(kbcode)
+	seedlable := common.GetSeed()
+	if len(strings.TrimSpace(seedlable)) == 0 {
+		return common.SeedInfo{}
+	}
+	return api.GetSeedLabelBySeed(seedlable)
 }
 
 func (c *Deploy) CheckSeedLabel() bool {

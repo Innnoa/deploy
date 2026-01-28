@@ -157,7 +157,7 @@ func installPackages(target, mount string) {
 			}
 		default:
 			beforebat = "AppEntrance.bat"
-			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].WinFile, shortSeed)
+			_, err = common.RunScriptWithArgs(path.Join(target, beforebat), installedPackages[i].WinFile, shortSeed, common.CurrentOA.ServerName)
 		}
 
 		if err != nil {

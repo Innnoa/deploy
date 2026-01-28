@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -119,6 +121,16 @@ type GetSeedLabelRequest struct {
 type GetSeedLabelResponse struct {
 	PublicResponse
 	Data []common.SeedLabelInfo `json:"data"`
+}
+
+type GetSeedLabelBySeedRequest struct {
+	PublicRequest
+	Seed string `json:"seedlabel"`
+}
+
+type GetSeedLabelBySeedResponse struct {
+	PublicResponse
+	Data common.SeedLabelInfo `json:"data"`
 }
 
 type GetSeedTasksRequest struct {
@@ -724,10 +736,72 @@ func UploadPCInfo(info common.DetailComputerInfo) {
 	}
 }
 
-func GetSeedLabel(kbcode string) common.SeedInfo {
-	common.AppLogger.Info("get seedlabel from kbcode")
+func GetSeedLabelBySeed(seed string) common.SeedInfo {
+	common.AppLogger.Info("get seedlabel from seedlabel")
 
 	var seedlabel common.SeedInfo
+	seedlabel.SeedLabel = seed
+
+	var request GetSeedLabelBySeedRequest
+	request.Seed = seed
+
+	var public PublicRequest
+	public.AccessKeyId = ACCESS_KEY
+	public.Timestamp = getCurrentTimestamp()
+	request.PublicRequest = public
+
+	m := structToMap(request)
+	request.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
+
+	m["signature"] = request.Signature
+
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getSeedInfoByLabel", nil, nil, m)
+
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("请求异常: %v", err))
+		seedlabel.ErrorMsg = fmt.Sprintf("Get Seedlabel %s infomation failed, please check the system log for detail.", seed)
+		return seedlabel
+	}
+
+	if status != http.StatusOK {
+		common.AppLogger.Error(fmt.Sprintf("业务错误: HTTP %d → %s", status, string(data)))
+		seedlabel.ErrorMsg = fmt.Sprintf("Get Seedlabel %s infomation failed, please check the system log for detail.", seed)
+		return seedlabel
+	}
+
+	var result GetSeedLabelBySeedResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		common.AppLogger.Error(fmt.Sprintf("JSON解析失败: %v", err))
+		seedlabel.ErrorMsg = fmt.Sprintf("Seedlabel %s was not found in the system.", seed)
+
+		return seedlabel
+	}
+
+	seedlabel.SeedLabel = result.Data.SeedLabel
+	seedlabel.Status = result.Data.Status
+	common.CurrentComputerInfo.Seed = result.Data.SeedLabel
+	common.CurrentSeed = result.Data
+
+	filename := ""
+	if runtime.GOOS == "windows" {
+		filename = fmt.Sprintf("C:\\%s.seedlabel.txt", seedlabel.SeedLabel)
+	} else {
+		filename = fmt.Sprintf("/etc/seedinfo/%s.seedlabel.txt", seedlabel.SeedLabel)
+	}
+	_, err = os.Stat(filename)
+	if err != nil && errors.Is(err, fs.ErrNotExist) {
+
+		seedlabel.ErrorMsg = fmt.Sprintf("Seed label file %s is not found on local disk, installation cannot continue.", filename)
+		common.AppLogger.Error(seedlabel.ErrorMsg)
+	}
+
+	return seedlabel
+}
+
+func GetSeedLabel(kbcode string) string {
+	common.AppLogger.Info("get seedlabel from kbcode")
+
+	var seedlabel string
 
 	var request GetSeedLabelRequest
 	request.KBCode = kbcode
@@ -760,29 +834,32 @@ func GetSeedLabel(kbcode string) common.SeedInfo {
 		return seedlabel
 	}
 
-	var find = false
-	var filename string
-	for _, sl := range result.Data {
-		seedlabel.SeedLabel = sl.SeedLabel
-		seedlabel.Status = sl.Status
-		common.CurrentComputerInfo.Seed = sl.SeedLabel
-		common.CurrentSeed = sl
+	// var find = false
+	// var filename string
+	// for _, sl := range result.Data {
+	// 	seedlabel.SeedLabel = sl.SeedLabel
+	// 	seedlabel.Status = sl.Status
+	// 	common.CurrentComputerInfo.Seed = sl.SeedLabel
+	// 	common.CurrentSeed = sl
 
-		if runtime.GOOS == "windows" {
-			filename = fmt.Sprintf("C:\\%s.seedlabel.txt", sl.SeedLabel)
-		} else {
-			filename = fmt.Sprintf("/etc/seedinfo/%s.seedlabel.txt", sl.SeedLabel)
-		}
-		_, err := os.Stat(filename)
-		if err == nil {
-			find = true
-			break
-		}
-	}
+	// 	if runtime.GOOS == "windows" {
+	// 		filename = fmt.Sprintf("C:\\%s.seedlabel.txt", sl.SeedLabel)
+	// 	} else {
+	// 		filename = fmt.Sprintf("/etc/seedinfo/%s.seedlabel.txt", sl.SeedLabel)
+	// 	}
+	// 	_, err := os.Stat(filename)
+	// 	if err == nil {
+	// 		find = true
+	// 		break
+	// 	}
+	// }
 
-	if !find {
-		seedlabel.ErrorMsg = fmt.Sprintf("Seed label file %s is not found on local disk, installation cannot continue.", filename)
-		common.AppLogger.Error(seedlabel.ErrorMsg)
+	// if !find {
+	// 	seedlabel.ErrorMsg = fmt.Sprintf("Seed label file %s is not found on local disk, installation cannot continue.", filename)
+	// 	common.AppLogger.Error(seedlabel.ErrorMsg)
+	// }
+	if len(result.Data) > 0 {
+		seedlabel = result.Data[0].SeedLabel
 	}
 
 	return seedlabel
