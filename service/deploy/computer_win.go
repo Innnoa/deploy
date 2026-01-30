@@ -59,7 +59,9 @@ func getUploadInfo() common.DetailComputerInfo {
 	kbcode := getLastKBCode()
 	seed := api.GetSeedLabel(kbcode)
 
-	common.DetailPCInfo.SP = seed[len(seed)-3:]
+	if len(seed) > 3 {
+		common.DetailPCInfo.SP = seed[len(seed)-3:]
+	}
 
 	disks := getDiskInfo()
 	setDiskInfo(disks)

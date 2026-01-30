@@ -2,9 +2,9 @@
   "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "Deployment tool",      
   "info": {     
-    "productVersion": "0.9.0.2601280",       
+    "productVersion": "0.9.0.2601290",       
     "fileVersion": "0.9.0.9",           
-    "copyright": "Copyright © 2025",
+    "copyright": "Copyright © 2026",
     "productName": "Deploy"
   },
   "build": {
