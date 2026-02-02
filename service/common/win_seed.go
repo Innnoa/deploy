@@ -53,7 +53,7 @@ func setRegValue(key registry.Key, path string, name string, value interface{}) 
 func GetSeed() string {
 	label := getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Label")
 	version := getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Version")
-	return fmt.Sprintf("%s%s", label, version)
+	return fmt.Sprintf("%sV%s", label, version)
 }
 
 func UpdateLocalReg() {
