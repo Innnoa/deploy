@@ -5,6 +5,7 @@ package common
 
 import (
 	"fmt"
+	"time"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -50,10 +51,15 @@ func setRegValue(key registry.Key, path string, name string, value interface{}) 
 }
 
 func GetSeed() string {
-	return getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Longlabel")
+	label := getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Label")
+	version := getRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Version")
+	return fmt.Sprintf("%s%s", label, version)
 }
 
-func UpdateLocalSeed(seed string) {
-	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Longlabel", seed)
-	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Label", seed[0:4])
+func UpdateLocalReg() {
+	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Longlabel", CurrentSeed.SeedLabel)
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("2006-01-02 15:04:05")
+	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Deployed", formattedTime)
+	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "OAServer", CurrentOA.ServerName)
 }

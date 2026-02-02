@@ -169,6 +169,10 @@ func installPackages(target, mount string) {
 		installedPackages[i].Status = common.Completed.String()
 
 		api.InstallationSuccess(app)
+		if i == len(installedPackages)-1 {
+			common.AppLogger.Info("All installations completed.")
+			common.UpdateLocalReg()
+		}
 	}
 
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
