@@ -31,11 +31,12 @@ func getRegValue(key registry.Key, path string, name string) string {
 }
 
 func setRegValue(key registry.Key, path string, name string, value interface{}) {
-	key, err := registry.OpenKey(key, path, registry.QUERY_VALUE)
+	key, _, err := registry.CreateKey(key, path, registry.SET_VALUE|registry.QUERY_VALUE)
 	if err != nil {
-		AppLogger.Error(err.Error())
+		AppLogger.Error("Can't create or open the registry" + err.Error())
+		return
 	}
-	defer key.Close()
+	defer key.Close() // 确保函数退出时关闭键
 
 	switch v := value.(type) {
 	case string:
