@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"recovery-unit-deploy/service/common"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -35,4 +37,11 @@ func (a *App) Greet(name string) string {
 
 func (a *App) LogFromFrontend(message string) {
 	common.AppLogger.Info(fmt.Sprintln("[Frontend]", message))
+}
+
+func (a *App) BeforeClose(ctx context.Context) (prevent bool) {
+	// 发送事件给前端，而不是直接弹系统对话框
+	runtime.EventsEmit(a.ctx, "appClosing")
+	// 返回 true 以阻止窗口立即关闭，等待前端反馈
+	return true
 }
