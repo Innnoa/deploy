@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"net"
@@ -18,6 +19,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed all:frontend/dist
@@ -174,8 +176,13 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour:   &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:          app.startup,
+		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		OnStartup:        app.startup,
+		OnBeforeClose: func(ctx context.Context) (prevent bool) {
+			wailsRuntime.EventsEmit(ctx, "onBeforeClose")
+			//阻止 Wails 默认的关闭行为，由前端处理
+			return true
+		},
 		Logger:             common.AppLogger,
 		LogLevel:           logger.TRACE,
 		LogLevelProduction: logger.TRACE,
