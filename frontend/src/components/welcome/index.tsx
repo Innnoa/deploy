@@ -5,6 +5,7 @@ import computerLogo from '../../assets/images/computer-logo.png';
 import {GetOAServer,GetSeedLabel,
         GetPrinterModels, GetNetworkPinterList, CheckSeedLabel, GetOS
 } from "../../../wailsjs/go/deploy/Deploy";
+import { ForceQuit } from "../../../wailsjs/go/main/App";
 import { ExclamationCircleFilled} from '@ant-design/icons';
 import { useAppContext } from '../../context/AppContext';
 
@@ -158,7 +159,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onStartClick }) => {
           style: { width: '90px' }
         },
         onCancel: () => {
-          (window as any).runtime?.Quit();
+          ForceQuit();
         }
       })
     }

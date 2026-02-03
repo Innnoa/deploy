@@ -3,7 +3,7 @@ import { Table, Button, Progress, Typography, Modal ,Tooltip} from 'antd';
 import { ExclamationCircleFilled,CheckCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
 import {GetInstallPackages,DoInstall,GetInstallStatus, Reboot, InstallAfterReboot, DeleteTempFiles, CancelInatallation} from "../../../wailsjs/go/deploy/Deploy";
-
+import { ForceQuit } from "../../../wailsjs/go/main/App";
 const { Text } = Typography;
 
 const useStyles = createStyles(({ css }) => ({
@@ -355,7 +355,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
         },
         onOk: () => {
           DeleteTempFiles();
-          (window as any).runtime?.Quit();
+          ForceQuit();
           Reboot();
         },
         onCancel: () => {

@@ -6,3 +6,5 @@ export function GetStartPage():Promise<string>;
 export function Greet(arg1:string):Promise<string>;
 
 export function LogFromFrontend(arg1:string):Promise<void>;
+
+export function ForceQuit():Promise<void>;

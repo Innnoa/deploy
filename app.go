@@ -10,8 +10,9 @@ import (
 
 // App struct
 type App struct {
-	ctx       context.Context
-	startPage string
+	ctx        context.Context
+	startPage  string
+	shouldQuit bool
 }
 
 // NewApp creates a new App application struct
@@ -39,9 +40,17 @@ func (a *App) LogFromFrontend(message string) {
 	common.AppLogger.Info(fmt.Sprintln("[Frontend]", message))
 }
 
+func (a *App) ForceQuit() {
+	a.shouldQuit = true
+	runtime.Quit(a.ctx)
+}
+
 func (a *App) BeforeClose(ctx context.Context) (prevent bool) {
+	if a.shouldQuit {
+		return false
+	}
 	// 发送事件给前端，而不是直接弹系统对话框
-	runtime.EventsEmit(a.ctx, "appClosing")
+	runtime.EventsEmit(a.ctx, "onBeforeClose")
 	// 返回 true 以阻止窗口立即关闭，等待前端反馈
 	return true
 }

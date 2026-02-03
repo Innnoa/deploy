@@ -176,13 +176,9 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.startup,
-		OnBeforeClose: func(ctx context.Context) (prevent bool) {
-			wailsRuntime.EventsEmit(ctx, "onBeforeClose")
-			//阻止 Wails 默认的关闭行为，由前端处理
-			return true
-		},
+		BackgroundColour:   &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		OnStartup:          app.startup,
+		OnBeforeClose:      app.BeforeClose,
 		Logger:             common.AppLogger,
 		LogLevel:           logger.TRACE,
 		LogLevelProduction: logger.TRACE,

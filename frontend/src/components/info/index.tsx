@@ -7,6 +7,7 @@ import seedName from '../../assets/images/seed-name.png';
 import serverName from '../../assets/images/server-name.png';
 import ipName from '../../assets/images/ip-name.png';
 import {GetComputerInfo , IsAdmin, CheckNewVersion} from "../../../wailsjs/go/deploy/Deploy";
+import { ForceQuit } from "../../../wailsjs/go/main/App";
 import { useAppContext } from '../../context/AppContext';
 import { ExclamationCircleFilled} from '@ant-design/icons';
 
@@ -143,7 +144,7 @@ const Info: React.FC = () => {
                 style: { width: '90px' }
               },
               onCancel: () => {
-                (window as any).runtime?.Quit();
+                ForceQuit();
               }
             });
           } else {
@@ -171,7 +172,7 @@ const Info: React.FC = () => {
             style: { width: '90px' }
           },
           onCancel: () => {
-            (window as any).runtime?.Quit();
+            ForceQuit();
           }
         });
       } 

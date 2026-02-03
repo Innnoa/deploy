@@ -6,6 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useAppContext } from '../../context/AppContext';
 import { GetSelectedLocalPrinterDrivers, SetSelectedPrinters 
   ,GetNetworkPinterList } from "../../../wailsjs/go/deploy/Deploy"; 
+import { ForceQuit } from "../../../wailsjs/go/main/App";
 
 const useStyles = createStyles(({ css }) => ({
   configContainer: css`
@@ -217,7 +218,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
         style: { width: '90px' }
       },
       onOk: () => {
-        (window as any).runtime?.Quit();
+        ForceQuit();
       }
     });
   };
