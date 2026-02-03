@@ -4,8 +4,6 @@ import { ExclamationCircleFilled,CheckCircleFilled} from '@ant-design/icons';
 import { createStyles } from 'antd-style';
 import {GetInstallPackages,DoInstall,GetInstallStatus, Reboot, InstallAfterReboot, DeleteTempFiles, CancelInatallation} from "../../../wailsjs/go/deploy/Deploy";
 
-import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
-
 const { Text } = Typography;
 
 const useStyles = createStyles(({ css }) => ({
@@ -276,17 +274,6 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
       
     } 
   };
-
-  useEffect(() => {
-    // 监听窗口关闭事件
-    EventsOn("onBeforeClose", () => {
-      handleCancel(isDeployFinished);
-    });
-
-    return () => {
-      EventsOff("onBeforeClose");
-    };
-  }, [isDeployFinished]);
 
   useEffect(() => {
 
