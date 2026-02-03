@@ -2,7 +2,7 @@
 GITLAB_HOST = http://git.deepi.tech:888
 PROJECT_ID  = 702
 PACKAGE_NAME = Deploy
-VERSION = 0.9.0.2602030
+VERSION = 0.9.0.2602031
 BUILD_DIR = build/bin
 BINARY_NAME = Deploy.exe
 BASE_URL = https://deploy.ru.com/api-system

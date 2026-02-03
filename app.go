@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"recovery-unit-deploy/service/common"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
