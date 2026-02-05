@@ -48,6 +48,8 @@ func setRegValue(key registry.Key, path string, name string, value interface{}) 
 	}
 	if err != nil {
 		AppLogger.Error(err.Error())
+	} else {
+		AppLogger.Info(fmt.Sprintf("Successfully set registry value: %s\\%s = %v", path, name, value))
 	}
 }
 
@@ -58,7 +60,7 @@ func GetSeed() string {
 }
 
 func UpdateLocalReg() {
-	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Longlabel", CurrentSeed.SeedLabel)
+	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Longlabel", GetSeed())
 	currentTime := time.Now()
 	formattedTime := currentTime.Format("2006-01-02 15:04:05")
 	setRegValue(registry.LOCAL_MACHINE, "SOFTWARE\\HKPF\\Seed", "Deployed", formattedTime)

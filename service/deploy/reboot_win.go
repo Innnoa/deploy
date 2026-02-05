@@ -50,9 +50,9 @@ func reboot() {
 
 	// 错误处理
 	if err != nil {
-		fmt.Printf("reboot failed: %v\n", err)
+		common.AppLogger.Error(fmt.Sprintf("reboot failed: %v", err))
 		return
 	}
 
-	fmt.Println("computer will reboot soon")
+	common.AppLogger.Info("computer will reboot soon")
 }
