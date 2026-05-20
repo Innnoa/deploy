@@ -218,6 +218,17 @@ func getDiskInfo() []DiskInfo {
 	return disks
 }
 
+func (c *Deploy) GetSeedLabel() common.SeedInfo {
+	// kbcode := getLastKBCode()
+	// // kbcode = "KB5039334"
+	// seed := api.GetSeedLabel(kbcode)
+	seedlable := common.GetSeed()
+	if len(strings.TrimSpace(seedlable)) == 0 {
+		return common.SeedInfo{}
+	}
+	return api.GetSeedLabelBySeed(seedlable)
+}
+
 func getLastKBCode() string {
 	var kbList []string
 	cmd := exec.Command("systeminfo")

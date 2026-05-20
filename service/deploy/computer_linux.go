@@ -398,6 +398,16 @@ func getCPUInfo() CPUInfo {
 	return cpuInfo
 }
 
+func (c *Deploy) GetSeedLabel() common.SeedInfo {
+	kbcode := getLastKBCode()
+	// kbcode = "KB5039334"
+	seedlable := api.GetSeedLabel(kbcode)
+	if len(strings.TrimSpace(seedlable)) == 0 {
+		return common.SeedInfo{}
+	}
+	return api.GetSeedLabelBySeed(seedlable)
+}
+
 func getLastKBCode() string {
 	data, err := os.ReadFile("/etc/oem-info")
 	if err != nil {

@@ -2,7 +2,7 @@
 GITLAB_HOST = http://git.deepi.tech:888
 PROJECT_ID  = 702
 PACKAGE_NAME = Deploy
-VERSION = 0.9.0.2605200
+VERSION = 0.9.0.2605201
 BUILD_DIR = build/bin
 BASE_URL = https://ru.hpf.gov.hk/api-system
 BINARY_NAME_WIN = $(PACKAGE_NAME)-windows-$(VERSION)-amd64.exe
