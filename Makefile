@@ -2,7 +2,7 @@
 GITLAB_HOST = http://git.deepi.tech:888
 PROJECT_ID  = 702
 PACKAGE_NAME = Deploy
-VERSION = 0.9.0.2605201
+VERSION = 0.9.0.2606180
 BUILD_DIR = build/bin
 BASE_URL_DEV = https://deploy.ru.com/api-system
 BASE_URL = https://ru.hpf.gov.hk/api-system
@@ -27,7 +27,7 @@ build:
 
 build-dev-linux:
 	wails build -o $(BINARY_NAME_LINUX) -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL_DEV)"
-	
+
 build-linux:
 	wails build -o $(BINARY_NAME_LINUX) -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL)"
 
