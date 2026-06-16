@@ -4,6 +4,7 @@ PROJECT_ID  = 702
 PACKAGE_NAME = Deploy
 VERSION = 0.9.0.2605201
 BUILD_DIR = build/bin
+BASE_URL_DEV = https://deploy.ru.com/api-system
 BASE_URL = https://ru.hpf.gov.hk/api-system
 BINARY_NAME_WIN = $(PACKAGE_NAME)-windows-$(VERSION)-amd64.exe
 BINARY_NAME_LINUX = $(PACKAGE_NAME)-linux-$(VERSION)-amd64
@@ -18,9 +19,15 @@ GITLAB_TOKEN    ?= ""
 all: build upload
 
 # 构建 Wails 应用
+build-dev:
+	wails build -o $(BINARY_NAME_WIN) -platform windows/amd64 -webview2 Embed -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL_DEV)"
+
 build:
 	wails build -o $(BINARY_NAME_WIN) -platform windows/amd64 -webview2 Embed -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL)"
 
+build-dev-linux:
+	wails build -o $(BINARY_NAME_LINUX) -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL_DEV)"
+	
 build-linux:
 	wails build -o $(BINARY_NAME_LINUX) -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL)"
 
