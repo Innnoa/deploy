@@ -278,7 +278,7 @@ const Configuration: React.FC<ConfigurationProps> = ({ onBack ,onSwitchToDeploy}
       <div className={styles.section}>
         <div className={styles.sectionTitle}>Local Printer Configuration</div>
         <div className={styles.formItem}>
-          <span className={styles.label}>Printer Brands:</span>
+          <span className={styles.label}>Printer Brand:</span>
           <Select style={{ width: 350, textAlign: 'left' }} placeholder="select" 
             options={options} dropdownStyle={{ textAlign: 'left' }}
             onChange={handlePrinterModelChange} allowClear={true}
