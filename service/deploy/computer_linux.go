@@ -400,8 +400,10 @@ func getCPUInfo() CPUInfo {
 
 func (c *Deploy) GetSeedLabel() common.SeedInfo {
 	kbcode := getLastKBCode()
+	common.AppLogger.Info(fmt.Sprintf("oem info is: %s\n", kbcode))
 	// kbcode = "KB5039334"
 	seedlable := api.GetSeedLabel(kbcode)
+	common.AppLogger.Info(fmt.Sprintf("seedlabel is: %s\n", seedlable))
 	if len(strings.TrimSpace(seedlable)) == 0 {
 		return common.SeedInfo{}
 	}
