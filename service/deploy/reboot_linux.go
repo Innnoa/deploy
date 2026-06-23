@@ -9,14 +9,14 @@ import (
 	"path/filepath"
 	"recovery-unit-deploy/service/common"
 	"strings"
-	"syscall"
 )
 
 func reboot() {
-	if err := syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART); err != nil {
-		fmt.Println("reboot failed", err)
+	output, err := runCommand("systemctl", "reboot")
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintln("reboot failed:", err, output))
 	} else {
-		fmt.Println("reboot secuess")
+		common.AppLogger.Info("reboot success")
 	}
 }
 
