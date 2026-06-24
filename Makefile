@@ -8,6 +8,8 @@ BASE_URL_DEV = https://deploy.ru.com/api-system
 BASE_URL = https://ru.hpf.gov.hk/api-system
 BINARY_NAME_WIN = $(PACKAGE_NAME)-windows-$(VERSION)-amd64.exe
 BINARY_NAME_LINUX = $(PACKAGE_NAME)-linux-$(VERSION)-amd64
+BINARY_NAME_WIN_DEV = $(PACKAGE_NAME)-windows-$(VERSION)-amd64-uat.exe
+BINARY_NAME_LINUX_DEV = $(PACKAGE_NAME)-linux-$(VERSION)-amd64-uat
 
 # 安全提示：GITLAB_TOKEN 必须通过环境变量传入，不要硬编码 set GITLAB_TOKEN=xxxxxxxxxx！
 # 生成方式：GitLab 账号 → Settings → Access Tokens → 勾选 api 权限
@@ -20,21 +22,29 @@ all: build upload
 
 # 构建 Wails 应用
 build-dev:
-	wails build -o $(BINARY_NAME_WIN) -platform windows/amd64 -webview2 Embed -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL_DEV)"
+	wails build -o $(BINARY_NAME_WIN_DEV) -platform windows/amd64 -webview2 Embed -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL_DEV)"
 
 build:
 	wails build -o $(BINARY_NAME_WIN) -platform windows/amd64 -webview2 Embed -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL)"
 
 build-dev-linux:
-	wails build -o $(BINARY_NAME_LINUX) -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL_DEV)"
+	wails build -o $(BINARY_NAME_LINUX_DEV) -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL_DEV)"
 
 build-linux:
 	wails build -o $(BINARY_NAME_LINUX) -platform linux/amd64 -clean -ldflags "-s -w -X main.Version=$(VERSION) -X main.BaseUrl=$(BASE_URL)"
 
 # 上传到 GitLab Generic Package Registry
+upload-dev:
+	@test $(GITLAB_TOKEN) || (echo "错误：必须设置 GITLAB_TOKEN 环境变量"; exit 1)
+	curl --header "PRIVATE-TOKEN: $(GITLAB_TOKEN)" --upload-file $(BUILD_DIR)/$(BINARY_NAME_WIN_DEV) "$(GITLAB_HOST)/api/v4/projects/$(PROJECT_ID)/packages/generic/$(PACKAGE_NAME)/$(VERSION)/$(BINARY_NAME_WIN_DEV)"
+
 upload:
 	@test $(GITLAB_TOKEN) || (echo "错误：必须设置 GITLAB_TOKEN 环境变量"; exit 1)
 	curl --header "PRIVATE-TOKEN: $(GITLAB_TOKEN)" --upload-file $(BUILD_DIR)/$(BINARY_NAME_WIN) "$(GITLAB_HOST)/api/v4/projects/$(PROJECT_ID)/packages/generic/$(PACKAGE_NAME)/$(VERSION)/$(BINARY_NAME_WIN)"
+
+upload-linux-dev:
+	@test $(GITLAB_TOKEN) || (echo "错误：必须设置 GITLAB_TOKEN 环境变量"; exit 1)
+	curl --header "PRIVATE-TOKEN: $(GITLAB_TOKEN)" --upload-file $(BUILD_DIR)/$(BINARY_NAME_LINUX_DEV) "$(GITLAB_HOST)/api/v4/projects/$(PROJECT_ID)/packages/generic/$(PACKAGE_NAME)/$(VERSION)/$(BINARY_NAME_LINUX_DEV)"
 
 upload-linux:
 	@test $(GITLAB_TOKEN) || (echo "错误：必须设置 GITLAB_TOKEN 环境变量"; exit 1)
