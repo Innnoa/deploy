@@ -12,9 +12,18 @@ import (
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 	"strings"
+	"time"
 )
 
 var tempFilePath = "/var/deploy"
+
+func getPcName() string {
+	name, err := os.Hostname()
+	if err != nil {
+		return ""
+	}
+	return name
+}
 
 func installRU() error {
 	ru := api.GetAppVersionInfo("RU", common.GetOS())
@@ -104,6 +113,11 @@ func (p *Deploy) DoInstall() {
 		return
 	}
 
+	if common.IsKylin() {
+		installPackages()
+		return
+	}
+
 	err = scriptDownload()
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintln("script download failed:", err))
@@ -135,6 +149,11 @@ func rebootForInstall() {
 }
 
 func installPackages() {
+	if common.IsKylin() {
+		installPackagesKylin()
+		return
+	}
+
 	for i := range installedPackages {
 		if cancelling {
 			break
@@ -218,5 +237,56 @@ func installPackages() {
 		}
 		installedPackages[i].Status = common.Completed.String()
 		api.InstallationSuccess(app)
+	}
+}
+
+func installPackagesKylin() {
+	pcName := getPcName()
+	kylinSubmitted = true
+	lastKylinPoll = time.Now()
+
+	for i := range installedPackages {
+		if cancelling {
+			return
+		}
+
+		var app common.AppStatus
+		app.ID = installedPackages[i].ID
+		app.MainTask = mainTask
+
+		if strings.TrimSpace(installedPackages[i].AppName) == "Restart Machine" {
+			api.StartInstall(app)
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
+			rebootForInstall()
+			return
+		}
+
+		if strings.TrimSpace(installedPackages[i].AppName) == "Time Sync" {
+			api.StartInstall(app)
+			syncTime()
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
+			continue
+		}
+
+		api.StartInstall(app)
+		installedPackages[i].Status = common.Running.String()
+
+		resp, err := api.InstallKylinApp(installedPackages[i].ID, pcName)
+		if err != nil {
+			common.AppLogger.Error(fmt.Sprintf("installKylinApp failed for %s: %v", installedPackages[i].AppName, err))
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = err.Error()
+			api.InstallationFailed(common.FailedAppStatus{AppStatus: app, Msg: err.Error()})
+			continue
+		}
+
+		if resp.Data.Status != "SUCCESS" {
+			common.AppLogger.Error(fmt.Sprintf("installKylinApp failed for %s: %s", installedPackages[i].AppName, resp.Data.Msg))
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = resp.Data.Msg
+			api.InstallationFailed(common.FailedAppStatus{AppStatus: app, Msg: resp.Data.Msg})
+		}
 	}
 }

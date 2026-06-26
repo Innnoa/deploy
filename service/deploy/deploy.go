@@ -26,6 +26,9 @@ func (p *Deploy) GetOS() string {
 		if common.IsUOS() {
 			return "UOS"
 		}
+		if common.IsKylin() {
+			return "Kylin"
+		}
 		return "Linux"
 	}
 	return "Windows"

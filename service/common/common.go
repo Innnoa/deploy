@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime"
 	"strings"
@@ -37,16 +36,25 @@ func PathExists(path string) bool {
 }
 
 func IsUOS() bool {
-	// 尝试读取 /etc/os-release 文件
 	file, err := os.ReadFile("/etc/os-version")
 	if err != nil {
-		log.Println("Error reading /etc/os-version:", err)
 		return false
 	}
 
-	// 检查文件内容
 	content := string(file)
 	return strings.Contains(content, "SystemName=UnionTech OS Desktop") || strings.Contains(content, "SystemName=UOS Desktop")
+}
+
+var readOsRelease = func() ([]byte, error) {
+	return os.ReadFile("/etc/os-release")
+}
+
+func IsKylin() bool {
+	file, err := readOsRelease()
+	if err != nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(string(file)), "kylin")
 }
 
 func GetOS() string {
@@ -56,6 +64,9 @@ func GetOS() string {
 	case "linux":
 		if IsUOS() {
 			return "UOS"
+		}
+		if IsKylin() {
+			return "Kylin"
 		}
 		return "linux"
 	}

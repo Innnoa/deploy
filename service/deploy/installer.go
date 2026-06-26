@@ -15,10 +15,13 @@ import (
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
 	"strings"
+	"time"
 )
 
 var mainTask = ""
 var cancelling = false
+var kylinSubmitted = false
+var lastKylinPoll time.Time
 
 func CreateFileWithAutoDirs(filePath string) error {
 	// 输入验证
@@ -312,8 +315,49 @@ func deleteTempFiles(dir string) error {
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
 	common.AppLogger.Info("GetInstallStatus")
 
+	if common.IsKylin() && kylinSubmitted && time.Since(lastKylinPoll) > 10*time.Second {
+		lastKylinPoll = time.Now()
+		pollKylinInstallStatus()
+	}
+
 	uiShow := getInstallPackages()
 	return uiShow
+}
+
+func pollKylinInstallStatus() {
+	for i := range installedPackages {
+		if installedPackages[i].Status != common.Running.String() {
+			continue
+		}
+
+		resp, err := api.GetKylinAppStatus(installedPackages[i].ID, mainTask)
+		if err != nil {
+			common.AppLogger.Error(fmt.Sprintf("poll Kylin status failed for %s: %v", installedPackages[i].AppName, err))
+			continue
+		}
+
+		if resp.Data.Status != "SUCCESS" {
+			continue
+		}
+
+		var app common.AppStatus
+		app.ID = installedPackages[i].ID
+		app.MainTask = mainTask
+
+		for _, row := range resp.Data.Rows {
+			if row.IStatusInstallOK == 1 {
+				installedPackages[i].Status = common.Completed.String()
+				api.InstallationSuccess(app)
+				break
+			}
+			if row.IStatusInstallFail == 1 || row.IStatusDownloadFail == 1 {
+				installedPackages[i].Status = common.Failed.String()
+				installedPackages[i].Error = row.StrResult
+				api.InstallationFailed(common.FailedAppStatus{AppStatus: app, Msg: row.StrResult})
+				break
+			}
+		}
+	}
 }
 
 func (p *Deploy) Reboot() {
