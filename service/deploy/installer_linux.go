@@ -107,11 +107,11 @@ func (p *Deploy) DoInstall() {
 	api.UploadPCInfo(common.DetailPCInfo)
 
 	maintaskid, err := uploadInstallInfo()
-	mainTask = maintaskid
 	if err != nil {
 		setAllStatusFail("upload task infomation failed")
 		return
 	}
+	mainTask = maintaskid
 
 	if common.IsKylin() {
 		installPackages()
@@ -242,12 +242,18 @@ func installPackages() {
 
 func installPackagesKylin() {
 	pcName := getPcName()
-	kylinSubmitted = true
-	lastKylinPoll = time.Now()
+	lastKylinPoll = time.Now().Add(-10 * time.Second)
+	kylinPollStart = time.Now()
+	kylinPollFailCount = map[string]int{}
 
 	for i := range installedPackages {
 		if cancelling {
 			return
+		}
+		if installedPackages[i].Status == common.Completed.String() ||
+			installedPackages[i].Status == common.Failed.String() ||
+			installedPackages[i].Status == common.Running.String() {
+			continue
 		}
 
 		var app common.AppStatus
@@ -270,10 +276,9 @@ func installPackagesKylin() {
 			continue
 		}
 
-		api.StartInstall(app)
 		installedPackages[i].Status = common.Running.String()
 
-		resp, err := api.InstallKylinApp(installedPackages[i].ID, pcName)
+		resp, err := api.InstallKylinApp(installedPackages[i].ID, pcName, mainTask)
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintf("installKylinApp failed for %s: %v", installedPackages[i].AppName, err))
 			installedPackages[i].Status = common.Failed.String()
@@ -287,6 +292,9 @@ func installPackagesKylin() {
 			installedPackages[i].Status = common.Failed.String()
 			installedPackages[i].Error = resp.Data.Msg
 			api.InstallationFailed(common.FailedAppStatus{AppStatus: app, Msg: resp.Data.Msg})
+			continue
 		}
+
+		kylinSubmitted = true
 	}
 }

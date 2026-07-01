@@ -1030,8 +1030,9 @@ func GetCodesByGroup(group string) []common.GroupCode {
 
 type InstallKylinAppRequest struct {
 	PublicRequest
-	AppID  string `json:"appid"`
-	PcName string `json:"pcName"`
+	AppID      string `json:"appid"`
+	PcName     string `json:"pcName"`
+	MainTaskID string `json:"maintaskid"`
 }
 
 type InstallKylinAppResponse struct {
@@ -1044,24 +1045,25 @@ type SoftwareDistributeSaveResponse struct {
 	Msg    string `json:"msg"`
 }
 
-func InstallKylinApp(appID, pcName string) (InstallKylinAppResponse, error) {
-	common.AppLogger.Info(fmt.Sprintf("installKylinApp: appid=%s, pcName=%s", appID, pcName))
+func InstallKylinApp(appID, pcName, maintaskID string) (InstallKylinAppResponse, error) {
+	common.AppLogger.Info(fmt.Sprintf("installKylinApp: appid=%s, pcName=%s, maintaskid=%s", appID, pcName, maintaskID))
 
 	var public PublicRequest
 	public.AccessKeyId = ACCESS_KEY
 	public.Timestamp = getCurrentTimestamp()
 
 	request := InstallKylinAppRequest{
-		AppID:       appID,
-		PcName:      pcName,
+		AppID:         appID,
+		PcName:        pcName,
+		MainTaskID:    maintaskID,
 		PublicRequest: public,
 	}
 
 	m := structToMap(request)
-	public.Signature = generateSignature(http.MethodPost, nil, ACCESS_SECRET, m)
+	public.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/installKylinApp", nil, nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/installKylinApp", nil, nil, m)
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("installKylinApp request failed: %v", err))
 		return InstallKylinAppResponse{}, err
@@ -1101,12 +1103,14 @@ type AuditInfoQueryResponse struct {
 }
 
 type SecSoftwareDistributeLog struct {
-	StaskStatus        int    `json:"staskstatus"`
-	StrResult          string `json:"strResult"`
-	IStatusInstallOK   int    `json:"istatus_installok"`
-	IStatusInstallFail int    `json:"istatus_installfail"`
-	IStatusDownloadFail int   `json:"istatus_downloadfail"`
-	DtInstallTime      string `json:"dtinstalltime"`
+	StaskStatus         int    `json:"staskstatus"`
+	StrResult           string `json:"strResult"`
+	IStatusInstallOK    int    `json:"istatus_installok"`
+	IStatusInstallFail  int    `json:"istatus_installfail"`
+	IStatusDownloadFail int    `json:"istatus_downloadfail"`
+	IStatusCancel       int    `json:"istatus_cancel"`
+	DtInstallTime       string `json:"dtinstalltime"`
+	DtTime              string `json:"dttime"`
 }
 
 func GetKylinAppStatus(appID, maintaskID string) (KylinAppStatusResponse, error) {
@@ -1123,10 +1127,10 @@ func GetKylinAppStatus(appID, maintaskID string) (KylinAppStatusResponse, error)
 	}
 
 	m := structToMap(request)
-	public.Signature = generateSignature(http.MethodPost, nil, ACCESS_SECRET, m)
+	public.Signature = generateSignature(http.MethodGet, nil, ACCESS_SECRET, m)
 	m["signature"] = public.Signature
 
-	data, status, err := Client.CallAPI(http.MethodPost, "/deploy/getKylinAppStatus", nil, nil, m)
+	data, status, err := Client.CallAPI(http.MethodGet, "/deploy/getKylinAppStatus", nil, nil, m)
 	if err != nil {
 		common.AppLogger.Error(fmt.Sprintf("getKylinAppStatus request failed: %v", err))
 		return KylinAppStatusResponse{}, err

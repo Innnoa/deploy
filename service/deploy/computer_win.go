@@ -6,7 +6,6 @@ package deploy
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"recovery-unit-deploy/service/api"
@@ -112,10 +111,12 @@ func getSystemInfo() SystemInfo {
 	var systems []Win32_ComputerSystem
 	query := wmi.CreateQuery(&systems, "")
 	if err := wmi.QueryNamespace(query, &systems, "root\\cimv2"); err != nil {
-		log.Fatalf("无法查询系统信息: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("无法查询系统信息: %v", err))
+		return SystemInfo{}
 	}
 	if len(systems) == 0 {
-		log.Fatal("WMI查询失败或未获取数据")
+		common.AppLogger.Error("WMI查询失败或未获取数据")
+		return SystemInfo{}
 	}
 
 	bootState := systems[0].BootupState
@@ -139,11 +140,13 @@ func getMemoryInfo() MemoryInfo {
 	var osList []Win32_PhysicalMemory
 	query := wmi.CreateQuery(&osList, "")
 	if err := wmi.QueryNamespace(query, &osList, "root\\cimv2"); err != nil {
-		log.Fatalf("无法查询内存信息: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("无法查询内存信息: %v", err))
+		return MemoryInfo{}
 	}
 
 	if len(osList) == 0 {
-		log.Fatal("未找到操作系统信息")
+		common.AppLogger.Error("未找到操作系统信息")
+		return MemoryInfo{}
 	}
 
 	os := osList[0]
@@ -164,11 +167,13 @@ func getCPUInfo() CPUInfo {
 	var cpus []Win32_Processor
 	query := wmi.CreateQuery(&cpus, "")
 	if err := wmi.QueryNamespace(query, &cpus, "root\\cimv2"); err != nil {
-		log.Fatalf("无法查询CPU信息: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("无法查询CPU信息: %v", err))
+		return CPUInfo{}
 	}
 
 	if len(cpus) == 0 {
-		log.Fatal("未找到CPU信息")
+		common.AppLogger.Error("未找到CPU信息")
+		return CPUInfo{}
 	}
 
 	cpu := cpus[0] // 如果有多个CPU，通常第一个是系统使用的
@@ -184,11 +189,13 @@ func getOpSystemInfo() string {
 	query := wmi.CreateQuery(&opSys, "")
 
 	if err := wmi.QueryNamespace(query, &opSys, "root\\cimv2"); err != nil {
-		log.Fatalf("无法查询操作系统信息: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("无法查询操作系统信息: %v", err))
+		return ""
 	}
 
 	if len(opSys) == 0 {
-		log.Fatal("WMI查询失败或未获取数据")
+		common.AppLogger.Error("WMI查询失败或未获取数据")
+		return ""
 	}
 
 	return opSys[0].SystemDirectory[0:1]
@@ -199,10 +206,12 @@ func getDiskInfo() []DiskInfo {
 
 	query := wmi.CreateQuery(&wdisks, "")
 	if err := wmi.QueryNamespace(query, &wdisks, "root\\cimv2"); err != nil {
-		log.Fatalf("无法查询磁盘信息: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("无法查询磁盘信息: %v", err))
+		return []DiskInfo{}
 	}
 	if len(wdisks) == 0 {
-		log.Fatal("WMI查询失败或未获取数据")
+		common.AppLogger.Error("WMI查询失败或未获取数据")
+		return []DiskInfo{}
 	}
 
 	var disks []DiskInfo
@@ -270,7 +279,8 @@ func checkSeedFile() bool {
 	filename := fmt.Sprintf("C:\\%s.seedlabel.txt", common.CurrentSeed.SeedLabel)
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
-		log.Fatal(err)
+		common.AppLogger.Error(fmt.Sprintf("seedlabel文件检查失败: %v", err))
+		return false
 	}
 
 	// 修改时间（跨平台通用）

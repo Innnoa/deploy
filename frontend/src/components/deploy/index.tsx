@@ -218,6 +218,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
         setAllData([]);
       }
     } catch (error) {
+      console.error('GetInstallPackages failed:', error);
       setAllData([]);
     } 
   };
@@ -233,6 +234,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
         setAllData([]);
       }
     } catch (error) {
+      console.error('GetInstallStatus failed:', error);
       setAllData([]);
     } 
   };
@@ -271,7 +273,7 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
       // }
       
     } catch (error) {
-      
+      console.error('DoInstall failed:', error);
     } 
   };
 
@@ -353,10 +355,10 @@ const Deploy: React.FC<DeployProps> = ({ onDeployBack, startPage }) => {
         cancelButtonProps: {
           style: { width: '90px' }
         },
-        onOk: () => {
-          DeleteTempFiles();
-          ForceQuit();
-          Reboot();
+        onOk: async () => {
+          await DeleteTempFiles();
+          await Reboot();
+          await ForceQuit();
         },
         onCancel: () => {
           // DeleteTempFiles();

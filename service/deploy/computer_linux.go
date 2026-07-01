@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"recovery-unit-deploy/service/api"
@@ -266,7 +265,8 @@ func getLoginInfo() (string, string) {
 	// 打开utmp文件
 	file, err := os.Open("/var/run/utmp")
 	if err != nil {
-		log.Fatalf("无法打开utmp文件: %v", err)
+		common.AppLogger.Error(fmt.Sprintf("无法打开utmp文件: %v", err))
+		return "", ""
 	}
 	defer file.Close()
 
@@ -457,7 +457,8 @@ func checkSeedFile() bool {
 	filename := fmt.Sprintf("/etc/seedinfo/%s.seedlabel.txt", common.CurrentSeed.SeedLabel)
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
-		log.Fatal(err)
+		common.AppLogger.Error(fmt.Sprintf("seedlabel文件检查失败: %v", err))
+		return false
 	}
 
 	// 修改时间（跨平台通用）

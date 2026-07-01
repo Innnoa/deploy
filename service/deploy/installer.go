@@ -22,6 +22,11 @@ var mainTask = ""
 var cancelling = false
 var kylinSubmitted = false
 var lastKylinPoll time.Time
+var kylinPollStart time.Time
+var kylinPollFailCount = map[string]int{}
+
+const kylinPollMaxDuration = 30 * time.Minute
+const kylinMaxConsecutiveFailures = 30
 
 func CreateFileWithAutoDirs(filePath string) error {
 	// 输入验证
@@ -315,7 +320,7 @@ func deleteTempFiles(dir string) error {
 func (p *Deploy) GetInstallStatus() []common.PackageInfo {
 	common.AppLogger.Info("GetInstallStatus")
 
-	if common.IsKylin() && kylinSubmitted && time.Since(lastKylinPoll) > 10*time.Second {
+	if common.IsKylin() && kylinSubmitted && time.Since(lastKylinPoll) > 5*time.Second {
 		lastKylinPoll = time.Now()
 		pollKylinInstallStatus()
 	}
@@ -325,6 +330,25 @@ func (p *Deploy) GetInstallStatus() []common.PackageInfo {
 }
 
 func pollKylinInstallStatus() {
+	if time.Since(kylinPollStart) > kylinPollMaxDuration {
+		for i := range installedPackages {
+			if installedPackages[i].Status != common.Running.String() {
+				continue
+			}
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = "poll Kylin status timed out"
+			var app common.FailedAppStatus
+			app.ID = installedPackages[i].ID
+			app.MainTask = mainTask
+			app.Msg = installedPackages[i].Error
+			api.InstallationFailed(app)
+			common.AppLogger.Error(fmt.Sprintf("poll Kylin status timed out for %s", installedPackages[i].AppName))
+		}
+		kylinSubmitted = false
+		return
+	}
+
+	allResolved := true
 	for i := range installedPackages {
 		if installedPackages[i].Status != common.Running.String() {
 			continue
@@ -333,10 +357,30 @@ func pollKylinInstallStatus() {
 		resp, err := api.GetKylinAppStatus(installedPackages[i].ID, mainTask)
 		if err != nil {
 			common.AppLogger.Error(fmt.Sprintf("poll Kylin status failed for %s: %v", installedPackages[i].AppName, err))
+			kylinPollFailCount[installedPackages[i].ID]++
+			if kylinPollFailCount[installedPackages[i].ID] >= kylinMaxConsecutiveFailures {
+				installedPackages[i].Status = common.Failed.String()
+				installedPackages[i].Error = fmt.Sprintf("poll Kylin status exceeded %d consecutive failures", kylinMaxConsecutiveFailures)
+				var app common.FailedAppStatus
+				app.ID = installedPackages[i].ID
+				app.MainTask = mainTask
+				app.Msg = installedPackages[i].Error
+				api.InstallationFailed(app)
+				continue
+			}
+			allResolved = false
+			continue
+		}
+		kylinPollFailCount[installedPackages[i].ID] = 0
+
+		if resp.Data.Status != "SUCCESS" {
+			allResolved = false
 			continue
 		}
 
-		if resp.Data.Status != "SUCCESS" {
+		if len(resp.Data.Rows) == 0 {
+			common.AppLogger.Error(fmt.Sprintf("poll Kylin status SUCCESS but rows empty for %s", installedPackages[i].AppName))
+			allResolved = false
 			continue
 		}
 
@@ -344,19 +388,34 @@ func pollKylinInstallStatus() {
 		app.ID = installedPackages[i].ID
 		app.MainTask = mainTask
 
+		resolved := false
 		for _, row := range resp.Data.Rows {
+			// staskstatus == 3 means task execution is complete
+			if row.StaskStatus != 3 {
+				continue
+			}
+
 			if row.IStatusInstallOK == 1 {
 				installedPackages[i].Status = common.Completed.String()
 				api.InstallationSuccess(app)
+				resolved = true
 				break
 			}
-			if row.IStatusInstallFail == 1 || row.IStatusDownloadFail == 1 {
-				installedPackages[i].Status = common.Failed.String()
-				installedPackages[i].Error = row.StrResult
-				api.InstallationFailed(common.FailedAppStatus{AppStatus: app, Msg: row.StrResult})
-				break
-			}
+
+			// task complete but not successful — treat as failed
+			installedPackages[i].Status = common.Failed.String()
+			installedPackages[i].Error = row.StrResult
+			api.InstallationFailed(common.FailedAppStatus{AppStatus: app, Msg: row.StrResult})
+			resolved = true
+			break
 		}
+		if !resolved {
+			allResolved = false
+		}
+	}
+
+	if allResolved {
+		kylinSubmitted = false
 	}
 }
 
@@ -420,13 +479,13 @@ func (p *Deploy) LoadTemporaryInfo() {
 
 func (p *Deploy) CancelInatallation() {
 	cancelling = true
-	for _, value := range installedPackages {
-		common.AppLogger.Info(fmt.Sprintf("CancelInatallation package.status : %s", value.Status))
-		if value.Status == "" || value.Status == common.Waiting.String() || value.Status == common.Running.String() {
-			value.Status = common.Canceled.String()
+	for i := range installedPackages {
+		common.AppLogger.Info(fmt.Sprintf("CancelInatallation package.status : %s", installedPackages[i].Status))
+		if installedPackages[i].Status == "" || installedPackages[i].Status == common.Waiting.String() || installedPackages[i].Status == common.Running.String() {
+			installedPackages[i].Status = common.Canceled.String()
 
 			var app common.AppStatus
-			app.ID = value.ID
+			app.ID = installedPackages[i].ID
 			app.MainTask = mainTask
 			api.CancelInstallation(app)
 		}

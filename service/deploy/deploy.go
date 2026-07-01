@@ -3,8 +3,14 @@ package deploy
 import (
 	"recovery-unit-deploy/service/api"
 	"recovery-unit-deploy/service/common"
-	"runtime"
 )
+
+var osDisplayNames = map[string]string{
+	"WIN":   "Windows",
+	"linux": "Linux",
+	"UOS":   "UOS",
+	"Kylin": "Kylin",
+}
 
 type Deploy struct {
 	HasNewVersion bool
@@ -19,17 +25,9 @@ func (p *Deploy) CheckNewVersion() bool {
 }
 
 func (p *Deploy) GetOS() string {
-	switch runtime.GOOS {
-	case "windows":
-		return "Windows"
-	case "linux":
-		if common.IsUOS() {
-			return "UOS"
-		}
-		if common.IsKylin() {
-			return "Kylin"
-		}
-		return "Linux"
+	short := common.GetOS()
+	if name, ok := osDisplayNames[short]; ok {
+		return name
 	}
 	return "Windows"
 }
