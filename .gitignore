@@ -1,3 +1,14 @@
 build/bin
 node_modules
 frontend/dist
+.worktrees/
+outputs/
+
+AI_GUIDE.md
+CURRENT_TASK.md
+DECISIONS.md
+handoff/
+.codex/
+.claude/
+.serena/
+outputs/runtime/
