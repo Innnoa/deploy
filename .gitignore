@@ -1,3 +1,15 @@
 build/bin
 node_modules
 frontend/dist
+webview2/*.cab
+
+# AI artifacts
+AI_GUIDE.md
+CURRENT_TASK.md
+DECISIONS.md
+docs/superpowers/
+handoff/
+.codex/
+.claude/
+.serena/
+outputs/runtime/
