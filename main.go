@@ -18,6 +18,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend/dist
@@ -165,6 +166,15 @@ func main() {
 	if isRestart {
 		deploy.LoadTemporaryInfo()
 	}
+	// 获取 WebView2 运行时路径 (Windows)
+	webviewBrowserPath := ensureWebView2Runtime()
+	var windowsOptions *windows.Options
+	if webviewBrowserPath != "" {
+		windowsOptions = &windows.Options{
+			WebviewBrowserPath: webviewBrowserPath,
+		}
+	}
+
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:         "Deploy",
@@ -182,6 +192,7 @@ func main() {
 		LogLevelProduction: logger.TRACE,
 		Bind: []interface{}{
 			app, deploy},
+		Windows: windowsOptions,
 	})
 
 	if err != nil {

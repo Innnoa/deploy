@@ -2,7 +2,7 @@
 GITLAB_HOST = http://git.deepi.tech:888
 PROJECT_ID  = 702
 PACKAGE_NAME = Deploy
-VERSION = 0.9.0.2606230
+VERSION = 0.9.0.2607060
 BUILD_DIR = build/bin
 BASE_URL_DEV = https://deploy.ru.com/api-system
 BASE_URL = https://ru.hpf.gov.hk/api-system
@@ -52,3 +52,10 @@ upload-linux:
 # 清理构建产物
 clean:
 	rm -rf build
+
+# 下载 WebView2 Fixed Version 运行时 CAB
+# 下载后放入 webview2/ 目录，构建时会自动嵌入 exe
+prepare-webview2:
+	bash build/windows/webview2/download.sh
+	@echo "=== 准备就绪 ==="
+	@echo "放置 CAB 到 webview2/ 后，运行 make build 即可打包含运行时的单个 exe"
