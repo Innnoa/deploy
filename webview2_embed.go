@@ -18,6 +18,15 @@ import (
 var webview2FS embed.FS
 
 func ensureWebView2Runtime() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+
+	if _, err := os.Stat("wails.json"); err == nil {
+		return ""
+	}
+
 	minVersion := "94.0.992.31"
 
 	if hasSystemWebView2(minVersion) {
@@ -26,16 +35,15 @@ func ensureWebView2Runtime() string {
 	}
 	common.AppLogger.Info("未检测到系统 WebView2，将使用内嵌运行时")
 
-	exePath, err := os.Executable()
-	if err != nil {
-		return ""
-	}
 	cacheDir := filepath.Join(filepath.Dir(exePath), "WebView2Runtime")
 
 	if cached := findWebView2Dir(cacheDir); cached != "" {
 		common.AppLogger.Info("使用已缓存的 WebView2 运行时: " + cached)
 		return cached
 	}
+
+	splash := showSplash()
+	defer hideSplash(splash)
 
 	actualDir := extractEmbeddedCab(cacheDir)
 	if actualDir == "" {
@@ -212,4 +220,37 @@ func compareVersion(a, b string) int {
 		}
 	}
 	return 0
+}
+
+func showSplash() *exec.Cmd {
+	script := `Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+$f = New-Object System.Windows.Forms.Form
+$f.Text = 'Deploy'
+$f.Size = New-Object System.Drawing.Size(340,90)
+$f.StartPosition = 'CenterScreen'
+$f.FormBorderStyle = 'FixedDialog'
+$f.MaximizeBox = $false
+$f.MinimizeBox = $false
+$f.ShowIcon = $false
+$f.TopMost = $true
+$l = New-Object System.Windows.Forms.Label
+$l.Text = 'Initializing runtime, please wait...'
+$l.AutoSize = $false
+$l.Size = New-Object System.Drawing.Size(300,30)
+$l.Location = New-Object System.Drawing.Point(20,20)
+$l.Font = New-Object System.Drawing.Font('Segoe UI',10)
+$l.TextAlign = 'MiddleCenter'
+$f.Controls.Add($l)
+$f.Show()
+[System.Windows.Forms.Application]::DoEvents()
+while($true){ [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 100 }`
+	cmd := exec.Command("powershell", "-WindowStyle", "Hidden", "-Command", script)
+	cmd.Start()
+	return cmd
+}
+
+func hideSplash(cmd *exec.Cmd) {
+	if cmd != nil && cmd.Process != nil {
+		cmd.Process.Kill()
+	}
 }
