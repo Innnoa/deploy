@@ -4,12 +4,14 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"recovery-unit-deploy/service/common"
 )
@@ -23,7 +25,11 @@ func ensureWebView2Runtime() string {
 		return ""
 	}
 
+	cwd, _ := os.Getwd()
+	common.AppLogger.Info(fmt.Sprintf("WebView2 检测开始: exe=%s, cwd=%s", exePath, cwd))
+
 	if _, err := os.Stat("wails.json"); err == nil {
+		common.AppLogger.Info("检测到 wails.json，判定为构建环境，跳过")
 		return ""
 	}
 
@@ -97,6 +103,7 @@ func extractCabData(cabData []byte, cacheDir string) string {
 	defer os.Remove(tmpCab)
 
 	cmd := exec.Command("expand", tmpCab, "-F:*", cacheDir)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if output, err := cmd.CombinedOutput(); err != nil {
 		common.AppLogger.Error("CAB 解压失败: " + string(output))
 		return ""
@@ -108,8 +115,12 @@ func extractCabData(cabData []byte, cacheDir string) string {
 		return ""
 	}
 
-	exec.Command("icacls", actualDir, "/grant", "*S-1-15-2-2:(OI)(CI)(RX)").Run()
-	exec.Command("icacls", actualDir, "/grant", "*S-1-15-2-1:(OI)(CI)(RX)").Run()
+	ic1 := exec.Command("icacls", actualDir, "/grant", "*S-1-15-2-2:(OI)(CI)(RX)")
+	ic1.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	ic1.Run()
+	ic2 := exec.Command("icacls", actualDir, "/grant", "*S-1-15-2-1:(OI)(CI)(RX)")
+	ic2.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	ic2.Run()
 
 	common.AppLogger.Info("WebView2 运行时已解压到: " + actualDir)
 	return actualDir
@@ -176,15 +187,43 @@ func hasSystemWebView2(minVersion string) bool {
 		`HKCU\Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}`,
 	}
 	for _, key := range keys {
-		out, err := exec.Command("reg", "query", key, "/v", "pv").Output()
+		cmd := exec.Command("reg", "query", key, "/v", "pv")
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		out, err := cmd.Output()
 		if err != nil {
+			common.AppLogger.Info(fmt.Sprintf("注册表检测: %s -> %v", key, err))
 			continue
 		}
-		version := parseRegVersion(string(out))
+		output := string(out)
+		version := parseRegVersion(output)
+		common.AppLogger.Info("注册表检测: " + key + " -> 版本 " + version)
 		if version != "" && compareVersion(version, minVersion) >= 0 {
 			return true
 		}
+		common.AppLogger.Info("注册表检测: 版本 " + version + " 不满足最低要求 " + minVersion)
 	}
+
+	baseDirs := []string{
+		filepath.Join(os.Getenv("ProgramFiles(x86)"), "Microsoft", "EdgeWebView", "Application"),
+		filepath.Join(os.Getenv("ProgramFiles"), "Microsoft", "EdgeWebView", "Application"),
+		filepath.Join(os.Getenv("LOCALAPPDATA"), "Microsoft", "EdgeWebView", "Application"),
+	}
+	for _, dir := range baseDirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				if _, err := os.Stat(filepath.Join(dir, entry.Name(), "msedgewebview2.exe")); err == nil {
+					common.AppLogger.Info("文件检测: 找到系统 WebView2 -> " + filepath.Join(dir, entry.Name()))
+					return true
+				}
+			}
+		}
+	}
+	common.AppLogger.Info("文件检测: 未找到系统 WebView2 文件")
+
 	return false
 }
 
@@ -245,6 +284,7 @@ $f.Show()
 [System.Windows.Forms.Application]::DoEvents()
 while($true){ [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 100 }`
 	cmd := exec.Command("powershell", "-WindowStyle", "Hidden", "-Command", script)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	cmd.Start()
 	return cmd
 }
