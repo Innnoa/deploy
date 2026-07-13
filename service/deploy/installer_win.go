@@ -98,12 +98,24 @@ func rebootForInstall() {
 }
 
 func installPackages(target, mount string) {
+	createScheduledTask("Deploy", []string{"-restart"})
+
 	for i := range installedPackages {
 		if cancelling {
 			break
 		}
 		if installedPackages[i].Status == common.Completed.String() ||
 			installedPackages[i].Status == common.Failed.String() {
+			continue
+		}
+
+		if common.Restart && installedPackages[i].Status == common.Running.String() {
+			var app common.AppStatus
+			app.ID = installedPackages[i].ID
+			app.MainTask = mainTask
+			common.AppLogger.Info(fmt.Sprintf("resume after reboot, skip package: %s", installedPackages[i].AppName))
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
 			continue
 		}
 
@@ -126,6 +138,7 @@ func installPackages(target, mount string) {
 
 			continue
 		} else if strings.TrimSpace(installedPackages[i].AppName) == "RU Service" {
+			saveTemporaryInfo()
 			err0 := installRU(target, mount)
 			if err0 != nil {
 				common.AppLogger.Error(fmt.Sprintln("install ruservice failed:", err0))
@@ -140,6 +153,8 @@ func installPackages(target, mount string) {
 			}
 			continue
 		}
+
+		saveTemporaryInfo()
 
 		var err error
 		err = downloadInstallFiles(target, mount, installedPackages[i])
@@ -178,6 +193,7 @@ func installPackages(target, mount string) {
 		}
 	}
 
+	DeleteScheduledTask("Deploy")
 	exec.Command("cmd", "/C", "net use Z: /delete /y").Run()
 }
 

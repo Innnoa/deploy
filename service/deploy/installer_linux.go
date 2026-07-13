@@ -135,12 +135,27 @@ func rebootForInstall() {
 }
 
 func installPackages() {
+	_, err := createScheduledTask("Deploy", []string{"-restart"})
+	if err != nil {
+		common.AppLogger.Error(fmt.Sprintf("create autostart failed: %v", err))
+	}
+
 	for i := range installedPackages {
 		if cancelling {
 			break
 		}
 		if installedPackages[i].Status == common.Completed.String() ||
 			installedPackages[i].Status == common.Failed.String() {
+			continue
+		}
+
+		if common.Restart && installedPackages[i].Status == common.Running.String() {
+			var app common.AppStatus
+			app.ID = installedPackages[i].ID
+			app.MainTask = mainTask
+			common.AppLogger.Info(fmt.Sprintf("resume after reboot, skip package: %s", installedPackages[i].AppName))
+			installedPackages[i].Status = common.Completed.String()
+			api.InstallationSuccess(app)
 			continue
 		}
 
@@ -163,6 +178,7 @@ func installPackages() {
 
 			continue
 		} else if strings.TrimSpace(installedPackages[i].AppName) == "RU Service" {
+			saveTemporaryInfo()
 			err0 := installRU()
 			if err0 != nil {
 				common.AppLogger.Error(fmt.Sprintln("install ruservice failed:", err0))
@@ -174,6 +190,8 @@ func installPackages() {
 
 			continue
 		}
+
+		saveTemporaryInfo()
 
 		_, err := runCommand("apt", "install", "--reinstall", installedPackages[i].InstallPackageName, "-y")
 		if err != nil {
@@ -219,4 +237,6 @@ func installPackages() {
 		installedPackages[i].Status = common.Completed.String()
 		api.InstallationSuccess(app)
 	}
+
+	DeleteScheduledTask("Deploy")
 }
