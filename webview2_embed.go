@@ -1,0 +1,296 @@
+//go:build windows
+
+package main
+
+import (
+	"embed"
+	"fmt"
+	"io/fs"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"syscall"
+
+	"recovery-unit-deploy/service/common"
+)
+
+//go:embed webview2/*
+var webview2FS embed.FS
+
+func ensureWebView2Runtime() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+
+	cwd, _ := os.Getwd()
+	common.AppLogger.Info(fmt.Sprintf("WebView2 检测开始: exe=%s, cwd=%s", exePath, cwd))
+
+	if _, err := os.Stat("wails.json"); err == nil {
+		common.AppLogger.Info("检测到 wails.json，判定为构建环境，跳过")
+		return ""
+	}
+
+	minVersion := "94.0.992.31"
+
+	if hasSystemWebView2(minVersion) {
+		common.AppLogger.Info("检测到系统已安装 WebView2 (>= " + minVersion + ")，直接使用")
+		return ""
+	}
+	common.AppLogger.Info("未检测到系统 WebView2，将使用内嵌运行时")
+
+	cacheDir := filepath.Join(filepath.Dir(exePath), "WebView2Runtime")
+
+	if cached := findWebView2Dir(cacheDir); cached != "" {
+		common.AppLogger.Info("使用已缓存的 WebView2 运行时: " + cached)
+		return cached
+	}
+
+	splash := showSplash()
+	defer hideSplash(splash)
+
+	actualDir := extractEmbeddedCab(cacheDir)
+	if actualDir == "" {
+		actualDir = extractExternalCab(cacheDir)
+	}
+
+	return actualDir
+}
+
+func extractEmbeddedCab(cacheDir string) string {
+	cabEntry := findCabInEmbed()
+	if cabEntry == nil {
+		return ""
+	}
+
+	common.AppLogger.Info("正在解压内嵌的 WebView2 运行时: " + cabEntry.Name())
+	cabData, err := fs.ReadFile(webview2FS, "webview2/"+cabEntry.Name())
+	if err != nil {
+		common.AppLogger.Error("读取内嵌 CAB 失败: " + err.Error())
+		return ""
+	}
+
+	return extractCabData(cabData, cacheDir)
+}
+
+func extractExternalCab(cacheDir string) string {
+	cabPath := findCabNextToExe()
+	if cabPath == "" {
+		common.AppLogger.Info("未找到 WebView2 CAB 文件，将使用系统检测")
+		return ""
+	}
+
+	common.AppLogger.Info("正在解压外部 WebView2 运行时: " + cabPath)
+	cabData, err := os.ReadFile(cabPath)
+	if err != nil {
+		common.AppLogger.Error("读取外部 CAB 失败: " + err.Error())
+		return ""
+	}
+
+	return extractCabData(cabData, cacheDir)
+}
+
+func extractCabData(cabData []byte, cacheDir string) string {
+	os.MkdirAll(cacheDir, 0755)
+
+	tmpCab := filepath.Join(cacheDir, "runtime.cab")
+	if err := os.WriteFile(tmpCab, cabData, 0644); err != nil {
+		common.AppLogger.Error("写入临时 CAB 失败: " + err.Error())
+		return ""
+	}
+	defer os.Remove(tmpCab)
+
+	cmd := exec.Command("expand", tmpCab, "-F:*", cacheDir)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	if output, err := cmd.CombinedOutput(); err != nil {
+		common.AppLogger.Error("CAB 解压失败: " + string(output))
+		return ""
+	}
+
+	actualDir := findWebView2Dir(cacheDir)
+	if actualDir == "" {
+		common.AppLogger.Error("解压后未找到 msedgewebview2.exe")
+		return ""
+	}
+
+	ic1 := exec.Command("icacls", actualDir, "/grant", "*S-1-15-2-2:(OI)(CI)(RX)")
+	ic1.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	ic1.Run()
+	ic2 := exec.Command("icacls", actualDir, "/grant", "*S-1-15-2-1:(OI)(CI)(RX)")
+	ic2.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	ic2.Run()
+
+	common.AppLogger.Info("WebView2 运行时已解压到: " + actualDir)
+	return actualDir
+}
+
+func findWebView2Dir(root string) string {
+	if _, err := os.Stat(filepath.Join(root, "msedgewebview2.exe")); err == nil {
+		return root
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return ""
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			subDir := filepath.Join(root, entry.Name())
+			if _, err := os.Stat(filepath.Join(subDir, "msedgewebview2.exe")); err == nil {
+				return subDir
+			}
+		}
+	}
+	return ""
+}
+
+func findCabInEmbed() fs.DirEntry {
+	entries, err := webview2FS.ReadDir("webview2")
+	if err != nil {
+		return nil
+	}
+	for _, entry := range entries {
+		if filepath.Ext(entry.Name()) == ".cab" {
+			return entry
+		}
+	}
+	return nil
+}
+
+func findCabNextToExe() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	exeDir := filepath.Dir(exePath)
+
+	candidates := []string{"webview2_runtime.cab"}
+	for _, p := range candidates {
+		if _, err := os.Stat(filepath.Join(exeDir, p)); err == nil {
+			return filepath.Join(exeDir, p)
+		}
+	}
+
+	entries, _ := os.ReadDir(exeDir)
+	for _, entry := range entries {
+		if filepath.Ext(entry.Name()) == ".cab" {
+			return filepath.Join(exeDir, entry.Name())
+		}
+	}
+	return ""
+}
+
+func hasSystemWebView2(minVersion string) bool {
+	keys := []string{
+		`HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}`,
+		`HKCU\Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}`,
+	}
+	for _, key := range keys {
+		cmd := exec.Command("reg", "query", key, "/v", "pv")
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		out, err := cmd.Output()
+		if err != nil {
+			common.AppLogger.Info(fmt.Sprintf("注册表检测: %s -> %v", key, err))
+			continue
+		}
+		output := string(out)
+		version := parseRegVersion(output)
+		common.AppLogger.Info("注册表检测: " + key + " -> 版本 " + version)
+		if version != "" && compareVersion(version, minVersion) >= 0 {
+			return true
+		}
+		common.AppLogger.Info("注册表检测: 版本 " + version + " 不满足最低要求 " + minVersion)
+	}
+
+	baseDirs := []string{
+		filepath.Join(os.Getenv("ProgramFiles(x86)"), "Microsoft", "EdgeWebView", "Application"),
+		filepath.Join(os.Getenv("ProgramFiles"), "Microsoft", "EdgeWebView", "Application"),
+		filepath.Join(os.Getenv("LOCALAPPDATA"), "Microsoft", "EdgeWebView", "Application"),
+	}
+	for _, dir := range baseDirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				if _, err := os.Stat(filepath.Join(dir, entry.Name(), "msedgewebview2.exe")); err == nil {
+					common.AppLogger.Info("文件检测: 找到系统 WebView2 -> " + filepath.Join(dir, entry.Name()))
+					return true
+				}
+			}
+		}
+	}
+	common.AppLogger.Info("文件检测: 未找到系统 WebView2 文件")
+
+	return false
+}
+
+func parseRegVersion(output string) string {
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		parts := strings.Fields(line)
+		for i, p := range parts {
+			if p == "REG_SZ" && i+1 < len(parts) {
+				return parts[i+1]
+			}
+		}
+	}
+	return ""
+}
+
+func compareVersion(a, b string) int {
+	ap := strings.Split(a, ".")
+	bp := strings.Split(b, ".")
+	for i := 0; i < len(ap) || i < len(bp); i++ {
+		va, vb := 0, 0
+		if i < len(ap) {
+			va, _ = strconv.Atoi(ap[i])
+		}
+		if i < len(bp) {
+			vb, _ = strconv.Atoi(bp[i])
+		}
+		if va > vb {
+			return 1
+		}
+		if va < vb {
+			return -1
+		}
+	}
+	return 0
+}
+
+func showSplash() *exec.Cmd {
+	script := `Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+$f = New-Object System.Windows.Forms.Form
+$f.Text = 'Deploy'
+$f.Size = New-Object System.Drawing.Size(340,90)
+$f.StartPosition = 'CenterScreen'
+$f.FormBorderStyle = 'FixedDialog'
+$f.MaximizeBox = $false
+$f.MinimizeBox = $false
+$f.ShowIcon = $false
+$f.TopMost = $true
+$l = New-Object System.Windows.Forms.Label
+$l.Text = 'Initializing runtime, please wait...'
+$l.AutoSize = $false
+$l.Size = New-Object System.Drawing.Size(300,30)
+$l.Location = New-Object System.Drawing.Point(20,20)
+$l.Font = New-Object System.Drawing.Font('Segoe UI',10)
+$l.TextAlign = 'MiddleCenter'
+$f.Controls.Add($l)
+$f.Show()
+[System.Windows.Forms.Application]::DoEvents()
+while($true){ [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 100 }`
+	cmd := exec.Command("powershell", "-WindowStyle", "Hidden", "-Command", script)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.Start()
+	return cmd
+}
+
+func hideSplash(cmd *exec.Cmd) {
+	if cmd != nil && cmd.Process != nil {
+		cmd.Process.Kill()
+	}
+}

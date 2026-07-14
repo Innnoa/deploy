@@ -1,0 +1,163 @@
+package common
+
+type OAServer struct {
+	ID          string `json:"id"`
+	ServerName  string `json:"serverName"`
+	IP          string `json:"ip"`
+	Port        string `json:"nginxPort"`
+	UserName    string `json:"username"`
+	Password    string `json:"password"`
+	BaseUrl     string `json:"baseUrl"`
+	RootPath    string `json:"rootPath"`
+	StorageType string `json:"storageType"`
+}
+
+type PrinterModel struct {
+	ID    string `json:"id"`
+	Brand string `json:"brand"`
+}
+
+type ComputerInfo struct {
+	Name string `json:"name"`
+	Seed string `json:"seed"`
+	IP   string `json:"ip"`
+	OA   string `json:"oa"`
+}
+
+type PrinterWithPackage struct {
+	ID            string `json:"id"`
+	PolNo         string `json:"pol"`
+	IP            string `json:"ip"`
+	AppId         string `json:"appid"`
+	AppName       string `json:"appname"`
+	BrandId       string `json:"brandId"`
+	AppType       string `json:"apptype"`
+	Path          string `json:"installpath"`
+	WinFile       string `json:"winfile"`
+	UOSFile       string `json:"uosdeb"`
+	KylinFile     string `json:"kylindeb"`
+	PrinterName   string `json:"printerName"`
+	PrinterDriver string `json:"printerDriver"`
+	Ppd           string `json:"ppd"`
+}
+
+type Printer struct {
+	ID    string `json:"id"`
+	PolNo string `json:"pol"`
+	IP    string `json:"ip"`
+	AppId string `json:"appid"`
+}
+
+type PackageInfo struct {
+	ID                 string `json:"id"`
+	AppName            string `json:"appname"`
+	BrandId            string `json:"brandId"`
+	AppType            string `json:"apptype"`
+	Path               string `json:"installpath"`
+	WinFile            string `json:"winfile"`
+	UOSFile            string `json:"uosdeb"`
+	KylinFile          string `json:"kylindeb"`
+	Status             string `json:"status"`
+	Error              string `json:"error"`
+	PolNo              string `json:"pol"`
+	IP                 string `json:"ip"`
+	Reboot             string `json:"reboot"`
+	PrinterName        string `json:"printerName"`
+	PrinterDriver      string `json:"printerDriver"`
+	InstallPackageName string `json:"installPackageName"`
+	Ppd                string `json:"ppd"`
+}
+
+type Status int
+
+const (
+	Waiting Status = iota // 显式指定类型
+	Running
+	Completed
+	Failed
+	Canceled
+)
+
+func (s Status) String() string {
+	return [...]string{
+		"Waiting", "Running", "Completed", "Failed", "Canceled",
+	}[s]
+}
+
+type AppStatus struct {
+	ID       string `json:"appid"`
+	MainTask string `json:"maintaskid"`
+}
+
+type FailedAppStatus struct {
+	AppStatus
+	Msg string `json:"errmsg"`
+}
+
+type InstallInfo struct {
+	Pols   []string `json:"pols"`
+	AppIds []string `json:"appids"`
+	UserId int      `json:"userid"`
+}
+
+type DetailComputerInfo struct {
+	PolNo        string `json:"pol"`
+	IP           string `json:"ip"`
+	OS           string `json:"os"`
+	SP           string `json:"sp"`
+	Seedlabel    string `json:"seedlabel"`
+	SystemDrive  string `json:"systemdrive"`
+	NumOfDrive   string `json:"numofdrive"`
+	LastDrive    string `json:"lastdrive"`
+	SizeOfDrive1 string `json:"sizeofdrive1"`
+	SizeOfDrive2 string `json:"sizeofdrive2"`
+	FreeSpaceC   string `json:"freespacec"`
+	FreeSpaceD   string `json:"freespaced"`
+	CpuSpeed     string `json:"cpuspeed"`
+	CpuType      string `json:"cputype"`
+	Ram          string `json:"ram"`
+	PCModel      string `json:"pcmodel"`
+	BootEnv      string `json:"bootenv"`
+	LastSignon   string `json:"lastsignon"`
+	LogonId      string `json:"logonid"`
+	KBCode       string `json:"kbcode"`
+}
+
+type SeedLabelInfo struct {
+	Id        string `json:"id"`
+	SeedLabel string `json:"seedlabel"`
+	Status    string `json:"status"`
+}
+
+type SeedInfo struct {
+	SeedLabel string `json:"seedlabel"`
+	Status    string `json:"status"`
+	ErrorMsg  string `json:"errormsg"`
+}
+
+type TempInfo struct {
+	Packages   []PackageInfo `json:"packages"`
+	Server     OAServer      `json:"server"`
+	Computer   ComputerInfo  `json:"computer"`
+	MaintaskId string        `json:"maintaskid"`
+}
+
+type AppVersionInfo struct {
+	Version      string `json:"version"`
+	Type         string `json:"type"`
+	DownloadUrl  string `json:"downloadUrl"`
+	InstallPath  string `json:"installPath"`
+	ReleaseNotes string `json:"releaseNotes"`
+}
+
+type SeedTimeInfo struct {
+	CreateTime string `json:"createTime"`
+	UpdateTime string `json:"updateTime"`
+	SeedLabel  string `json:"seedlabel"`
+}
+
+type GroupCode struct {
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	SortOrder int    `json:"sortOrder"`
+}

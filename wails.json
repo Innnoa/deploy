@@ -1,0 +1,23 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Deployment tool",      
+  "info": {     
+    "productVersion": "0.9.0.2607140",       
+    "fileVersion": "0.9.0.9",           
+    "copyright": "Copyright © 2026",
+    "productName": "Deploy"
+  },
+  "build": {
+    "icon": "favicon.ico",    
+   
+    "windows": {
+      "icon": "favicon.ico"  
+    }
+  },
+  "assetdir": "frontend/dist", 
+  "outputfilename": "Deploy",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto"
+}
