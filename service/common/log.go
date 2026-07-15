@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -13,6 +14,46 @@ import (
 
 var AppLogger logger.Logger
 var LogFile *os.File
+
+type timestampLogger struct {
+	base logger.Logger
+}
+
+func formatLogMessageAt(ts time.Time, message string) string {
+	formatted := ts.Format("2006-01-02 15:04:05.000")
+	if strings.TrimSpace(message) == "" {
+		return formatted
+	}
+	return formatted + " | " + message
+}
+
+func (l *timestampLogger) Print(message string) {
+	l.base.Print(formatLogMessageAt(time.Now(), message))
+}
+
+func (l *timestampLogger) Trace(message string) {
+	l.base.Trace(formatLogMessageAt(time.Now(), message))
+}
+
+func (l *timestampLogger) Debug(message string) {
+	l.base.Debug(formatLogMessageAt(time.Now(), message))
+}
+
+func (l *timestampLogger) Info(message string) {
+	l.base.Info(formatLogMessageAt(time.Now(), message))
+}
+
+func (l *timestampLogger) Warning(message string) {
+	l.base.Warning(formatLogMessageAt(time.Now(), message))
+}
+
+func (l *timestampLogger) Error(message string) {
+	l.base.Error(formatLogMessageAt(time.Now(), message))
+}
+
+func (l *timestampLogger) Fatal(message string) {
+	l.base.Fatal(formatLogMessageAt(time.Now(), message))
+}
 
 // 初始化日志系统
 func InitLogger(appName string) {
@@ -45,7 +86,9 @@ func InitLogger(appName string) {
 	// 设置自定义日志格式 (可选)
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
-	AppLogger = logger.NewFileLogger(logFileName)
+	AppLogger = &timestampLogger{
+		base: logger.NewFileLogger(logFileName),
+	}
 
 	// 写入初始化标记
 	AppLogger.Info(fmt.Sprintf("===== 日志系统初始化完成 [%s] =====\n", logFileName))

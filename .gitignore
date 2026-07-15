@@ -15,3 +15,6 @@ handoff/
 .claude/
 .serena/
 outputs/runtime/
+.agents/
+{{CODEX_HOME}}/
+.DS_Store
